@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 using namespace std;
 
 enum Piece {
@@ -17,7 +18,12 @@ enum Piece {
     BLACK_KING
 };
 
-void initBoard(Piece board[]) {
+struct Move {
+    int from;
+    int to;
+};
+
+void initBoard(vector<Piece>& board) {
     board[0] = board[7] = BLACK_ROOK;
     board[1] = board[6] = BLACK_KNIGHT;
     board[2] = board[5] = BLACK_BISHOP;
@@ -35,7 +41,7 @@ void initBoard(Piece board[]) {
     for (int i = 16; i < 48; i++) board[i] = EMPTY;
 }
 
-void printBoard(Piece board[]) {
+void printBoard(vector<Piece>& board) {
     for (int i = 0; i < 8; i++) {
         cout << 8 - i << " ";
         for (int j = 0; j < 8; j++) {
@@ -72,7 +78,7 @@ void printBoard(Piece board[]) {
     cout << "  a b c d e f g h" << endl;
 }
 
-void parseFEN(string fen, Piece board[]) {
+void parseFEN(string fen, vector<Piece>& board) {
     int index = 0;
     for (char c : fen) {
         if (c == '/') continue;
@@ -108,9 +114,166 @@ void parseFEN(string fen, Piece board[]) {
     }
 }
 
+bool isWhitePiece(Piece piece) {
+    return piece >= WHITE_PAWN && piece <= WHITE_KING;
+}
+
+bool isBlackPiece(Piece piece) {
+    return piece >= BLACK_PAWN && piece <= BLACK_KING;
+}
+
+int pieceColor(Piece piece) {
+    if (isWhitePiece(piece)) return 1;
+    if (isBlackPiece(piece)) return -1;
+    return 0;  // Empty square
+}
+
+bool isValidSquare(int square) { return square >= 0 && square < 64; }
+
+bool isInsideBoard(int r, int c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+
+void generateKnightMoves(int square, vector<Piece>& board,
+                         vector<Move>& moves) {
+    int knightMoves[8][2] = {{2, 1}, {2, -1}, {-2, 1}, {-2, -1},
+                             {1, 2}, {1, -2}, {-1, 2}, {-1, -2}};
+
+    int r = square / 8, c = square % 8;
+    for (auto& move : knightMoves) {
+        int newR = r + move[0], newC = c + move[1];
+        if (isInsideBoard(newR, newC)) {
+            int newSquare = newR * 8 + newC;
+            if (pieceColor(board[newSquare]) != pieceColor(board[square])) {
+                moves.push_back({square, newSquare});
+            }
+        }
+    }
+}
+
+void generateBishopMoves(int square, vector<Piece>& board,
+                         vector<Move>& moves) {
+    int directions[4][2] = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+    int r = square / 8, c = square % 8;
+
+    for (auto& dir : directions) {
+        int newR = r + dir[0], newC = c + dir[1];
+        while (isInsideBoard(newR, newC)) {
+            int newSquare = newR * 8 + newC;
+            if (board[newSquare] == EMPTY) {
+                moves.push_back({square, newSquare});
+            } else {
+                if (pieceColor(board[newSquare]) != pieceColor(board[square])) {
+                    moves.push_back({square, newSquare});
+                }
+                break;  // Stop if we hit a piece
+            }
+            newR += dir[0];
+            newC += dir[1];
+        }
+    }
+}
+
+void generateRookMoves(int square, vector<Piece>& board, vector<Move>& moves) {
+    int directions[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    int r = square / 8, c = square % 8;
+
+    for (auto& dir : directions) {
+        int newR = r + dir[0], newC = c + dir[1];
+        while (isInsideBoard(newR, newC)) {
+            int newSquare = newR * 8 + newC;
+            if (board[newSquare] == EMPTY) {
+                moves.push_back({square, newSquare});
+            } else {
+                if (pieceColor(board[newSquare]) != pieceColor(board[square])) {
+                    moves.push_back({square, newSquare});
+                }
+                break;  // Stop if we hit a piece
+            }
+            newR += dir[0];
+            newC += dir[1];
+        }
+    }
+}
+
+void generateQueenMoves(int square, vector<Piece>& board, vector<Move>& moves) {
+    generateBishopMoves(square, board, moves);
+    generateRookMoves(square, board, moves);
+}
+
+void generateKingMoves(int square, vector<Piece>& board, vector<Move>& moves) {
+    int kingMoves[8][2] = {{1, 0}, {-1, 0}, {0, 1},  {0, -1},
+                           {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+
+    int r = square / 8, c = square % 8;
+    for (auto& move : kingMoves) {
+        int newR = r + move[0], newC = c + move[1];
+        if (isInsideBoard(newR, newC)) {
+            int newSquare = newR * 8 + newC;
+            if (pieceColor(board[newSquare]) != pieceColor(board[square])) {
+                moves.push_back({square, newSquare});
+            }
+        }
+    }
+}
+
+void generatePawnMoves(int square, vector<Piece>& board, vector<Move>& moves) {
+    int r = square / 8, c = square % 8;
+    Piece piece = board[square];
+
+    if (piece == WHITE_PAWN) {
+        // Move forward
+        if (isInsideBoard(r - 1, c) && board[(r - 1) * 8 + c] == EMPTY) {
+            moves.push_back({square, (r - 1) * 8 + c});
+            // Double move from starting position
+            if (r == 6 && board[(r - 2) * 8 + c] == EMPTY) {
+                moves.push_back({square, (r - 2) * 8 + c});
+            }
+        }
+        // Capture diagonally
+        if (isInsideBoard(r - 1, c - 1) &&
+            isBlackPiece(board[(r - 1) * 8 + (c - 1)])) {
+            moves.push_back({square, (r - 1) * 8 + (c - 1)});
+        }
+        if (isInsideBoard(r - 1, c + 1) &&
+            isBlackPiece(board[(r - 1) * 8 + (c + 1)])) {
+            moves.push_back({square, (r - 1) * 8 + (c + 1)});
+        }
+    } else if (piece == BLACK_PAWN) {
+        // Move forward
+        if (isInsideBoard(r + 1, c) && board[(r + 1) * 8 + c] == EMPTY) {
+            moves.push_back({square, (r + 1) * 8 + c});
+            // Double move from starting position
+            if (r == 1 && board[(r + 2) * 8 + c] == EMPTY) {
+                moves.push_back({square, (r + 2) * 8 + c});
+            }
+        }
+        // Capture diagonally
+        if (isInsideBoard(r + 1, c - 1) &&
+            isWhitePiece(board[(r + 1) * 8 + (c - 1)])) {
+            moves.push_back({square, (r + 1) * 8 + (c - 1)});
+        }
+        if (isInsideBoard(r + 1, c + 1) &&
+            isWhitePiece(board[(r + 1) * 8 + (c + 1)])) {
+            moves.push_back({square, (r + 1) * 8 + (c + 1)});
+        }
+    }
+}
+
+class Game {
+   public:
+    vector<Piece> board;
+
+    int colorToMove;  // 1 for white, -1 for black
+
+    Game() {
+        board.resize(64);
+        initBoard(board);
+        colorToMove = 1;  // White moves first
+    }
+};
+
 int main() {
     while (true) {
-        Piece board[64];
+        vector<Piece> board(64);
         string fen;
         cout << "Enter FEN string: ";
         getline(cin, fen);
