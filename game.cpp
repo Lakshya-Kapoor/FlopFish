@@ -37,11 +37,12 @@ struct Move {
     int to;
 
     MoveType type;
-    Piece promotion;
+    Piece promotionPiece;
     int castlingType;
 
-    Piece movedPiece;
-    Piece capturedPiece;
+    int oldCastlingRights;
+    int oldEnPassantSquare;
+    vector<Piece> oldBoard;
 };
 
 bool isWhitePiece(Piece piece) {
@@ -315,11 +316,27 @@ class Game {
             // Capture diagonally
             if (isInsideBoard(r - 1, c - 1) &&
                 isBlackPiece(board[(r - 1) * 8 + (c - 1)])) {
-                moves.push_back({square, (r - 1) * 8 + (c - 1), CAPTURE});
+                int newSq = (r - 1) * 8 + (c - 1);
+                if (r == 1) {
+                    moves.push_back({square, newSq, PROMOTION, WHITE_QUEEN});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_ROOK});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_BISHOP});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_KNIGHT});
+                } else {
+                    moves.push_back({square, newSq, CAPTURE});
+                }
             }
             if (isInsideBoard(r - 1, c + 1) &&
                 isBlackPiece(board[(r - 1) * 8 + (c + 1)])) {
-                moves.push_back({square, (r - 1) * 8 + (c + 1), CAPTURE});
+                int newSq = (r - 1) * 8 + (c + 1);
+                if (r == 1) {
+                    moves.push_back({square, newSq, PROMOTION, WHITE_QUEEN});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_ROOK});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_BISHOP});
+                    moves.push_back({square, newSq, PROMOTION, WHITE_KNIGHT});
+                } else {
+                    moves.push_back({square, newSq, CAPTURE});
+                }
             }
         } else if (piece == BLACK_PAWN) {
             // Move forward
@@ -341,11 +358,27 @@ class Game {
             // Capture diagonally
             if (isInsideBoard(r + 1, c - 1) &&
                 isWhitePiece(board[(r + 1) * 8 + (c - 1)])) {
-                moves.push_back({square, (r + 1) * 8 + (c - 1), CAPTURE});
+                int newSq = (r + 1) * 8 + (c - 1);
+                if (r == 6) {
+                    moves.push_back({square, newSq, PROMOTION, BLACK_QUEEN});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_ROOK});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_BISHOP});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_KNIGHT});
+                } else {
+                    moves.push_back({square, newSq, CAPTURE});
+                }
             }
             if (isInsideBoard(r + 1, c + 1) &&
                 isWhitePiece(board[(r + 1) * 8 + (c + 1)])) {
-                moves.push_back({square, (r + 1) * 8 + (c + 1), CAPTURE});
+                int newSq = (r + 1) * 8 + (c + 1);
+                if (r == 6) {
+                    moves.push_back({square, newSq, PROMOTION, BLACK_QUEEN});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_ROOK});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_BISHOP});
+                    moves.push_back({square, newSq, PROMOTION, BLACK_KNIGHT});
+                } else {
+                    moves.push_back({square, newSq, CAPTURE});
+                }
             }
         }
     }
@@ -567,18 +600,82 @@ class Game {
         return false;
     }
 
-    void makeMove(Move& move) {
-        move.movedPiece = board[move.from];
-        move.capturedPiece = board[move.to];
+    void removeCastlingRights(Move& move) {
+        if (castlingRights & WHITE_KINGSIDE &&
+            (move.from == 63 || move.from == 60 || move.to == 63)) {
+            castlingRights &= ~WHITE_KINGSIDE;
+        }
+        if (castlingRights & WHITE_QUEENSIDE &&
+            (move.from == 56 || move.from == 60 || move.to == 56)) {
+            castlingRights &= ~WHITE_QUEENSIDE;
+        }
+        if (castlingRights & BLACK_KINGSIDE &&
+            (move.from == 7 || move.from == 4 || move.to == 7)) {
+            castlingRights &= ~BLACK_KINGSIDE;
+        }
+        if (castlingRights & BLACK_QUEENSIDE &&
+            (move.from == 0 || move.from == 4 || move.to == 0)) {
+            castlingRights &= ~BLACK_QUEENSIDE;
+        }
+    }
 
-        board[move.to] = board[move.from];
-        board[move.from] = EMPTY;
+    void makeMove(Move& move) {
+        move.oldCastlingRights = castlingRights;
+        move.oldEnPassantSquare = enPassantSquare;
+        move.oldBoard = board;
+
+        if (move.type == QUIET || move.type == CAPTURE) {
+            removeCastlingRights(move);
+            board[move.to] = board[move.from];
+            board[move.from] = EMPTY;
+        } else if (move.type == DOUBLE_PUSH) {
+            enPassantSquare = move.to;
+            board[move.to] = board[move.from];
+            board[move.from] = EMPTY;
+        } else if (move.type == PROMOTION) {
+            board[move.from] = EMPTY;
+            board[move.to] = move.promotionPiece;
+        } else if (move.type == EN_PASSANT) {
+            board[enPassantSquare] = EMPTY;
+            board[move.to] = board[move.from];
+            board[move.from] = EMPTY;
+        } else if (move.type == CASTLING) {
+            if (move.castlingType == WHITE_KINGSIDE) {
+                board[60] = EMPTY;
+                board[61] = WHITE_ROOK;
+                board[62] = WHITE_KING;
+                board[63] = EMPTY;
+                castlingRights &= ~(WHITE_KINGSIDE | WHITE_QUEENSIDE);
+            } else if (move.castlingType == WHITE_QUEENSIDE) {
+                board[60] = EMPTY;
+                board[59] = WHITE_ROOK;
+                board[58] = WHITE_KING;
+                board[56] = EMPTY;
+                castlingRights &= ~(WHITE_KINGSIDE | WHITE_QUEENSIDE);
+            } else if (move.castlingType == BLACK_KINGSIDE) {
+                board[4] = EMPTY;
+                board[5] = BLACK_ROOK;
+                board[6] = BLACK_KING;
+                board[7] = EMPTY;
+                castlingRights &= ~(BLACK_KINGSIDE | BLACK_QUEENSIDE);
+            } else if (move.castlingType == BLACK_QUEENSIDE) {
+                board[4] = EMPTY;
+                board[3] = BLACK_ROOK;
+                board[2] = BLACK_KING;
+                board[0] = EMPTY;
+                castlingRights &= ~(BLACK_KINGSIDE | BLACK_QUEENSIDE);
+            }
+        }
+
+        if (move.type != DOUBLE_PUSH) enPassantSquare = -1;
+
         colorToMove = -colorToMove;
     }
 
     void undoMove(Move& move) {
-        board[move.from] = move.movedPiece;
-        board[move.to] = move.capturedPiece;
+        castlingRights = move.oldCastlingRights;
+        enPassantSquare = move.oldEnPassantSquare;
+        board = move.oldBoard;
         colorToMove = -colorToMove;
     }
 
@@ -602,7 +699,7 @@ class Game {
 
 int main() {
     Game game("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    for (int i = 1; i <= 5; i++) {
+    for (int i = 1; i <= 6; i++) {
         U64 nodes = game.perft(i);
         cout << "Depth " << i << ": " << nodes << " nodes" << endl;
     }
