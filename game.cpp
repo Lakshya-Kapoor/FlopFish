@@ -770,13 +770,12 @@ class Game {
 
         if (move.type != DOUBLE_PUSH) enPassantSquare = -1;
 
-        if (move.type != CASTLING) {
-            if (board[move.from] == WHITE_PAWN ||
-                board[move.from] == BLACK_PAWN || move.type == CAPTURE)
-                halfmoveClock = 0;
-        } else {
+        if (move.type != CASTLING &&
+            (board[move.from] == WHITE_PAWN || board[move.from] == BLACK_PAWN ||
+             move.type == CAPTURE))
+            halfmoveClock = 0;
+        else
             halfmoveClock++;
-        }
 
         if (colorToMove == -1) fullmoveNumber++;
 
@@ -953,17 +952,15 @@ class Game {
         return score;
     }
 
-    // int evaluateSomething() {}
-
     int evaluate() {
-        GameState state = getGameState();
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        GameState state = getGameState(moves);
         if (state == CHECKMATE) {
-            if (colorToMove == 1)
-                return -100000;  // Black wins
-            else
-                return 100000;  // White wins
+            return -colorToMove * 100000;  // Checkmate
         } else if (state == STALEMATE || state == DRAW) {
-            return 0;  // Draw
+            return 0;
         }
 
         int score = 0;
@@ -973,10 +970,7 @@ class Game {
         return score;
     }
 
-    GameState getGameState() {
-        vector<Move> moves;
-        generateLegalMoves(moves);
-
+    GameState getGameState(vector<Move>& moves) {
         if (moves.empty()) {
             if (inCheck(colorToMove))
                 return CHECKMATE;
@@ -995,28 +989,15 @@ class Game {
 
         Move bestMove;
         int evalColor = colorToMove;
-        int bestScore;
-
-        if (evalColor == 1)
-            bestScore = INT_MIN;
-        else
-            bestScore = INT_MAX;
+        int maxScore = INT_MIN;
 
         for (Move& move : moves) {
             makeMove(move);
 
-            if (evalColor == 1) {
-                int score = mini(depth - 1);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = move;
-                }
-            } else {
-                int score = maxi(depth - 1);
-                if (score < bestScore) {
-                    bestScore = score;
-                    bestMove = move;
-                }
+            int score = -negamax(depth - 1);
+            if (score > maxScore) {
+                maxScore = score;
+                bestMove = move;
             }
 
             undoMove(move);
@@ -1025,18 +1006,23 @@ class Game {
         return bestMove;
     }
 
-    int maxi(int depth) {
-        if (depth == 0) return evaluate();
+    int negamax(int depth) {
+        if (depth == 0) return colorToMove * evaluate();
 
         int maxScore = INT_MIN;
 
         vector<Move> moves;
         generateLegalMoves(moves);
 
+        GameState state = getGameState(moves);
+        if (state == CHECKMATE) return -100000;
+        if (state == STALEMATE || state == DRAW) return 0;
+
         for (Move& move : moves) {
             makeMove(move);
 
-            maxScore = max(maxScore, mini(depth - 1));
+            int score = -negamax(depth - 1);
+            maxScore = max(maxScore, score);
 
             undoMove(move);
         }
@@ -1044,30 +1030,13 @@ class Game {
         return maxScore;
     }
 
-    int mini(int depth) {
-        if (depth == 0) return evaluate();
-
-        int minScore = INT_MAX;
-
-        vector<Move> moves;
-        generateLegalMoves(moves);
-
-        for (Move& move : moves) {
-            makeMove(move);
-
-            minScore = min(minScore, maxi(depth - 1));
-
-            undoMove(move);
-        }
-
-        return minScore;
-    }
-
     void gameLoop() {
         int cnt = 1;
+        printBoard();
         while (true) {
-            printBoard();
-            GameState state = getGameState();
+            vector<Move> moves;
+            generateLegalMoves(moves);
+            GameState state = getGameState(moves);
             if (state == CHECKMATE) {
                 cout << (colorToMove == 1 ? "Black" : "White")
                      << " wins by checkmate!" << endl;
@@ -1080,8 +1049,15 @@ class Game {
                 break;
             }
 
-            Move move = findBestMove(3);
+            Move move;
+            if (colorToMove == 1) {
+                move = findBestMove(4);
+            } else {
+                move = findBestMove(4);
+            }
+
             makeMove(move);
+            printBoard();
             cout << cnt++ << endl;
         }
     }
