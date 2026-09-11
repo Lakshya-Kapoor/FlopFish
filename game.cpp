@@ -1,7 +1,4 @@
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -23,7 +20,15 @@ enum Piece {
     BLACK_KING
 };
 
-enum MoveType { QUIET, DOUBLE_PUSH, CAPTURE, PROMOTION, EN_PASSANT, CASTLING };
+enum MoveType {
+    QUIET,
+    DOUBLE_PUSH,
+    CAPTURE,
+    QUIET_PROMOTION,
+    CAPTURE_PROMOTION,
+    EN_PASSANT,
+    CASTLING
+};
 
 enum CastlingRights {
     WHITE_KINGSIDE = 1 << 0,
@@ -32,6 +37,8 @@ enum CastlingRights {
     BLACK_QUEENSIDE = 1 << 3
 };
 
+enum GameState { ONGOING, CHECKMATE, STALEMATE, DRAW };
+
 struct Move {
     int from;
     int to;
@@ -39,10 +46,12 @@ struct Move {
     MoveType type;
     Piece promotionPiece;
     int castlingType;
+    Piece capturedPiece;
 
     int oldCastlingRights;
     int oldEnPassantSquare;
-    vector<Piece> oldBoard;
+    int oldHalfmoveClock;
+    int oldFullmoveNumber;
 };
 
 bool isWhitePiece(Piece piece) {
@@ -69,6 +78,48 @@ class Game {
     int colorToMove;  // 1 for white, -1 for black
     int castlingRights;
     int enPassantSquare;  // -1 if no en passant square
+    int halfmoveClock;
+    int fullmoveNumber;
+
+    const int pawnTable[64] = {
+        0,  0,  0,  0,   0,   0,  0,  0,  50, 50, 50,  50, 50, 50,  50, 50,
+        10, 10, 20, 30,  30,  20, 10, 10, 5,  5,  10,  25, 25, 10,  5,  5,
+        0,  0,  0,  20,  20,  0,  0,  0,  5,  -5, -10, 0,  0,  -10, -5, 5,
+        5,  10, 10, -20, -20, 10, 10, 5,  0,  0,  0,   0,  0,  0,   0,  0};
+
+    const int knightTable[64] = {
+        -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0,   5,   5,
+        0,   -20, -40, -30, 5,   10,  15,  15,  10,  5,   -30, -30, 0,
+        15,  20,  20,  15,  0,   -30, -30, 5,   15,  20,  20,  15,  5,
+        -30, -30, 0,   10,  15,  15,  10,  0,   -30, -40, -20, 0,   0,
+        0,   0,   -20, -40, -50, -40, -30, -30, -30, -30, -40, -50};
+
+    const int bishopTable[64] = {
+        -20, -10, -10, -10, -10, -10, -10, -20, -10, 5,   0,   0,   0,
+        0,   5,   -10, -10, 10,  10,  10,  10,  10,  10,  -10, -10, 0,
+        10,  10,  10,  10,  0,   -10, -10, 5,   5,   10,  10,  5,   5,
+        -10, -10, 0,   5,   10,  10,  5,   0,   -10, -10, 0,   0,   0,
+        0,   0,   0,   -10, -20, -10, -10, -10, -10, -10, -10, -20};
+
+    const int rookTable[64] = {0,  0,  0,  5,  5, 0,  0,  0, -5, 0, 0,  0,  0,
+                               0,  0,  -5, -5, 0, 0,  0,  0, 0,  0, -5, -5, 0,
+                               0,  0,  0,  0,  0, -5, -5, 0, 0,  0, 0,  0,  0,
+                               -5, -5, 0,  0,  0, 0,  0,  0, -5, 5, 10, 10, 10,
+                               10, 10, 10, 5,  0, 0,  0,  0, 0,  0, 0,  0};
+
+    const int queenTable[64] = {
+        -20, -10, -10, -5,  -5,  -10, -10, -20, -10, 0,   0,   0,  0,
+        0,   0,   -10, -10, 0,   5,   5,   5,   5,   0,   -10, -5, 0,
+        5,   5,   5,   5,   0,   -5,  0,   0,   5,   5,   5,   5,  0,
+        -5,  -10, 5,   5,   5,   5,   5,   5,   -10, -10, 0,   5,  0,
+        0,   5,   0,   -10, -20, -10, -10, -5,  -5,  -10, -10, -20};
+
+    const int kingTable[64] = {
+        -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50,
+        -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40,
+        -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30,
+        -20, -10, -20, -20, -20, -20, -20, -20, -10, 20,  20,  0,   0,
+        0,   0,   20,  20,  20,  30,  10,  0,   0,   10,  30,  20};
 
     Game() {
         board.resize(64);
@@ -77,6 +128,8 @@ class Game {
         castlingRights =
             WHITE_KINGSIDE | WHITE_QUEENSIDE | BLACK_KINGSIDE | BLACK_QUEENSIDE;
         enPassantSquare = -1;
+        halfmoveClock = 0;
+        fullmoveNumber = 1;
     }
 
     Game(string fen) {
@@ -142,11 +195,11 @@ class Game {
     void parseFEN(string fen) {
         istringstream iss(fen);
 
-        string boardPart, activeColor, castling, enPassant, halfmoveClock,
-            fullmoveNumber;
+        string boardPart, activeColor, castling, enPassant, halfClock,
+            fullNumber;
 
-        iss >> boardPart >> activeColor >> castling >> enPassant >>
-            halfmoveClock >> fullmoveNumber;
+        iss >> boardPart >> activeColor >> castling >> enPassant >> halfClock >>
+            fullNumber;
 
         int index = 0;
         for (char c : boardPart) {
@@ -203,6 +256,9 @@ class Game {
             int rank = 8 - (enPassant[1] - '0');
             enPassantSquare = rank * 8 + file;
         }
+
+        halfmoveClock = stoi(halfClock);
+        fullmoveNumber = stoi(fullNumber);
     }
 
     void generateKnightMoves(int square, vector<Move>& moves) {
@@ -301,10 +357,14 @@ class Game {
             if (isInsideBoard(r - 1, c) && board[(r - 1) * 8 + c] == EMPTY) {
                 int newSq = (r - 1) * 8 + c;
                 if (r == 1) {
-                    moves.push_back({square, newSq, PROMOTION, WHITE_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, WHITE_QUEEN});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, WHITE_ROOK});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, WHITE_BISHOP});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, WHITE_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, QUIET});
                 }
@@ -318,10 +378,14 @@ class Game {
                 isBlackPiece(board[(r - 1) * 8 + (c - 1)])) {
                 int newSq = (r - 1) * 8 + (c - 1);
                 if (r == 1) {
-                    moves.push_back({square, newSq, PROMOTION, WHITE_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_QUEEN});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_ROOK});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_BISHOP});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, CAPTURE});
                 }
@@ -330,10 +394,14 @@ class Game {
                 isBlackPiece(board[(r - 1) * 8 + (c + 1)])) {
                 int newSq = (r - 1) * 8 + (c + 1);
                 if (r == 1) {
-                    moves.push_back({square, newSq, PROMOTION, WHITE_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, WHITE_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_QUEEN});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_ROOK});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_BISHOP});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, WHITE_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, CAPTURE});
                 }
@@ -343,10 +411,14 @@ class Game {
             if (isInsideBoard(r + 1, c) && board[(r + 1) * 8 + c] == EMPTY) {
                 int newSq = (r + 1) * 8 + c;
                 if (r == 6) {
-                    moves.push_back({square, newSq, PROMOTION, BLACK_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, BLACK_QUEEN});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, BLACK_ROOK});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, BLACK_BISHOP});
+                    moves.push_back(
+                        {square, newSq, QUIET_PROMOTION, BLACK_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, QUIET});
                 }
@@ -360,10 +432,14 @@ class Game {
                 isWhitePiece(board[(r + 1) * 8 + (c - 1)])) {
                 int newSq = (r + 1) * 8 + (c - 1);
                 if (r == 6) {
-                    moves.push_back({square, newSq, PROMOTION, BLACK_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_QUEEN});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_ROOK});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_BISHOP});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, CAPTURE});
                 }
@@ -372,10 +448,14 @@ class Game {
                 isWhitePiece(board[(r + 1) * 8 + (c + 1)])) {
                 int newSq = (r + 1) * 8 + (c + 1);
                 if (r == 6) {
-                    moves.push_back({square, newSq, PROMOTION, BLACK_QUEEN});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_ROOK});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_BISHOP});
-                    moves.push_back({square, newSq, PROMOTION, BLACK_KNIGHT});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_QUEEN});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_ROOK});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_BISHOP});
+                    moves.push_back(
+                        {square, newSq, CAPTURE_PROMOTION, BLACK_KNIGHT});
                 } else {
                     moves.push_back({square, newSq, CAPTURE});
                 }
@@ -451,6 +531,8 @@ class Game {
     }
 
     void generatePseudoLegalMoves(vector<Move>& moves) {
+        generateCastlingMoves(moves);
+        generateEnPassantMoves(moves);
         if (colorToMove == 1) {
             for (int i = 0; i < 64; i++) {
                 if (isWhitePiece(board[i])) {
@@ -488,10 +570,16 @@ class Game {
         }
     }
 
-    void generateMoves(vector<Move>& moves) {
-        generatePseudoLegalMoves(moves);
-        generateCastlingMoves(moves);
-        generateEnPassantMoves(moves);
+    // generate all moves such that the king is not in check after the move
+    void generateLegalMoves(vector<Move>& moves) {
+        vector<Move> pseudoMoves;
+        generatePseudoLegalMoves(pseudoMoves);
+
+        for (auto& move : pseudoMoves) {
+            makeMove(move);
+            if (!inCheck(-colorToMove)) moves.push_back(move);
+            undoMove(move);
+        }
     }
 
     // Check if the king of the given color is in check
@@ -622,24 +710,37 @@ class Game {
     void makeMove(Move& move) {
         move.oldCastlingRights = castlingRights;
         move.oldEnPassantSquare = enPassantSquare;
-        move.oldBoard = board;
+        move.oldHalfmoveClock = halfmoveClock;
+        move.oldFullmoveNumber = fullmoveNumber;
 
-        if (move.type == QUIET || move.type == CAPTURE) {
+        if (move.type == QUIET) {
             removeCastlingRights(move);
             board[move.to] = board[move.from];
             board[move.from] = EMPTY;
+
         } else if (move.type == DOUBLE_PUSH) {
             enPassantSquare = move.to;
             board[move.to] = board[move.from];
             board[move.from] = EMPTY;
-        } else if (move.type == PROMOTION) {
+
+        } else if (move.type == CAPTURE) {
+            removeCastlingRights(move);
+            move.capturedPiece = board[move.to];
+            board[move.to] = board[move.from];
             board[move.from] = EMPTY;
+        } else if (move.type == QUIET_PROMOTION) {
             board[move.to] = move.promotionPiece;
+            board[move.from] = EMPTY;
+        } else if (move.type == CAPTURE_PROMOTION) {
+            move.capturedPiece = board[move.to];
+            board[move.to] = move.promotionPiece;
+            board[move.from] = EMPTY;
         } else if (move.type == EN_PASSANT) {
+            move.capturedPiece = board[enPassantSquare];
             board[enPassantSquare] = EMPTY;
             board[move.to] = board[move.from];
             board[move.from] = EMPTY;
-        } else if (move.type == CASTLING) {
+        } else if (move.type & CASTLING) {
             if (move.castlingType == WHITE_KINGSIDE) {
                 board[60] = EMPTY;
                 board[61] = WHITE_ROOK;
@@ -669,13 +770,80 @@ class Game {
 
         if (move.type != DOUBLE_PUSH) enPassantSquare = -1;
 
+        if (move.type != CASTLING) {
+            if (board[move.from] == WHITE_PAWN ||
+                board[move.from] == BLACK_PAWN || move.type == CAPTURE)
+                halfmoveClock = 0;
+        } else {
+            halfmoveClock++;
+        }
+
+        if (colorToMove == -1) fullmoveNumber++;
+
         colorToMove = -colorToMove;
     }
 
     void undoMove(Move& move) {
         castlingRights = move.oldCastlingRights;
         enPassantSquare = move.oldEnPassantSquare;
-        board = move.oldBoard;
+        halfmoveClock = move.oldHalfmoveClock;
+        fullmoveNumber = move.oldFullmoveNumber;
+
+        if (move.type == QUIET) {
+            board[move.from] = board[move.to];
+            board[move.to] = EMPTY;
+
+        } else if (move.type == DOUBLE_PUSH) {
+            board[move.from] = board[move.to];
+            board[move.to] = EMPTY;
+
+        } else if (move.type == CAPTURE) {
+            board[move.from] = board[move.to];
+            board[move.to] = move.capturedPiece;
+
+        } else if (move.type == QUIET_PROMOTION) {
+            board[move.from] = (isWhitePiece(move.promotionPiece) == 1)
+                                   ? WHITE_PAWN
+                                   : BLACK_PAWN;
+            board[move.to] = EMPTY;
+        } else if (move.type == CAPTURE_PROMOTION) {
+            board[move.from] = (isWhitePiece(move.promotionPiece) == 1)
+                                   ? WHITE_PAWN
+                                   : BLACK_PAWN;
+            board[move.to] = move.capturedPiece;
+
+        } else if (move.type == EN_PASSANT) {
+            board[move.from] = board[move.to];
+            board[move.to] = EMPTY;
+            board[move.oldEnPassantSquare] = move.capturedPiece;
+
+        } else if (move.type & CASTLING) {
+            if (move.castlingType == WHITE_KINGSIDE) {
+                board[60] = WHITE_KING;
+                board[61] = EMPTY;
+                board[62] = EMPTY;
+                board[63] = WHITE_ROOK;
+
+            } else if (move.castlingType == WHITE_QUEENSIDE) {
+                board[60] = WHITE_KING;
+                board[59] = EMPTY;
+                board[58] = EMPTY;
+                board[56] = WHITE_ROOK;
+
+            } else if (move.castlingType == BLACK_KINGSIDE) {
+                board[4] = BLACK_KING;
+                board[5] = EMPTY;
+                board[6] = EMPTY;
+                board[7] = BLACK_ROOK;
+
+            } else if (move.castlingType == BLACK_QUEENSIDE) {
+                board[4] = BLACK_KING;
+                board[3] = EMPTY;
+                board[2] = EMPTY;
+                board[0] = BLACK_ROOK;
+            }
+        }
+
         colorToMove = -colorToMove;
     }
 
@@ -685,7 +853,7 @@ class Game {
         U64 nodes = 0;
 
         vector<Move> moves;
-        generateMoves(moves);
+        generatePseudoLegalMoves(moves);
 
         for (auto& move : moves) {
             makeMove(move);
@@ -695,13 +863,241 @@ class Game {
 
         return nodes;
     }
+
+    int evaluateMaterial() {
+        int score = 0;
+        for (Piece& piece : board) {
+            switch (piece) {
+                case WHITE_PAWN:
+                    score += 100;
+                    break;
+                case WHITE_KNIGHT:
+                    score += 320;
+                    break;
+                case WHITE_BISHOP:
+                    score += 330;
+                    break;
+                case WHITE_ROOK:
+                    score += 500;
+                    break;
+                case WHITE_QUEEN:
+                    score += 900;
+                    break;
+                case BLACK_PAWN:
+                    score -= 100;
+                    break;
+                case BLACK_KNIGHT:
+                    score -= 320;
+                    break;
+                case BLACK_BISHOP:
+                    score -= 330;
+                    break;
+                case BLACK_ROOK:
+                    score -= 500;
+                    break;
+                case BLACK_QUEEN:
+                    score -= 900;
+                    break;
+                default:
+                    break;
+            }
+        }
+        return score;
+    }
+
+    int evaluatePieceSquareTables() {
+        int score = 0;
+        for (int i = 0; i < 64; i++) {
+            Piece piece = board[i];
+            if (piece == WHITE_PAWN)
+                score += pawnTable[i];
+            else if (piece == WHITE_KNIGHT)
+                score += knightTable[i];
+            else if (piece == WHITE_BISHOP)
+                score += bishopTable[i];
+            else if (piece == WHITE_ROOK)
+                score += rookTable[i];
+            else if (piece == WHITE_QUEEN)
+                score += queenTable[i];
+            else if (piece == BLACK_PAWN)
+                score -= pawnTable[63 - i];
+            else if (piece == BLACK_KNIGHT)
+                score -= knightTable[63 - i];
+            else if (piece == BLACK_BISHOP)
+                score -= bishopTable[63 - i];
+            else if (piece == BLACK_ROOK)
+                score -= rookTable[63 - i];
+            else if (piece == BLACK_QUEEN)
+                score -= queenTable[63 - i];
+        }
+        return score;
+    }
+
+    int evaluateMobility() {
+        vector<Move> whiteMoves;
+        vector<Move> blackMoves;
+
+        if (colorToMove == 1) {
+            generatePseudoLegalMoves(whiteMoves);
+            colorToMove = -1;
+            generatePseudoLegalMoves(blackMoves);
+            colorToMove = 1;
+        } else {
+            generatePseudoLegalMoves(blackMoves);
+            colorToMove = 1;
+            generatePseudoLegalMoves(whiteMoves);
+            colorToMove = -1;
+        }
+
+        int score = (whiteMoves.size() - blackMoves.size());
+        return score;
+    }
+
+    // int evaluateSomething() {}
+
+    int evaluate() {
+        GameState state = getGameState();
+        if (state == CHECKMATE) {
+            if (colorToMove == 1)
+                return -100000;  // Black wins
+            else
+                return 100000;  // White wins
+        } else if (state == STALEMATE || state == DRAW) {
+            return 0;  // Draw
+        }
+
+        int score = 0;
+        score += evaluateMaterial();
+        score += evaluateMobility();
+        score += evaluatePieceSquareTables();
+        return score;
+    }
+
+    GameState getGameState() {
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        if (moves.empty()) {
+            if (inCheck(colorToMove))
+                return CHECKMATE;
+            else
+                return STALEMATE;
+        }
+
+        if (halfmoveClock >= 100) return DRAW;
+
+        return ONGOING;
+    }
+
+    Move findBestMove(int depth) {
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        Move bestMove;
+        int evalColor = colorToMove;
+        int bestScore;
+
+        if (evalColor == 1)
+            bestScore = INT_MIN;
+        else
+            bestScore = INT_MAX;
+
+        for (Move& move : moves) {
+            makeMove(move);
+
+            if (evalColor == 1) {
+                int score = mini(depth - 1);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            } else {
+                int score = maxi(depth - 1);
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+
+            undoMove(move);
+        }
+
+        return bestMove;
+    }
+
+    int maxi(int depth) {
+        if (depth == 0) return evaluate();
+
+        int maxScore = INT_MIN;
+
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        for (Move& move : moves) {
+            makeMove(move);
+
+            maxScore = max(maxScore, mini(depth - 1));
+
+            undoMove(move);
+        }
+
+        return maxScore;
+    }
+
+    int mini(int depth) {
+        if (depth == 0) return evaluate();
+
+        int minScore = INT_MAX;
+
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        for (Move& move : moves) {
+            makeMove(move);
+
+            minScore = min(minScore, maxi(depth - 1));
+
+            undoMove(move);
+        }
+
+        return minScore;
+    }
+
+    void gameLoop() {
+        int cnt = 1;
+        while (true) {
+            printBoard();
+            GameState state = getGameState();
+            if (state == CHECKMATE) {
+                cout << (colorToMove == 1 ? "Black" : "White")
+                     << " wins by checkmate!" << endl;
+                break;
+            } else if (state == STALEMATE) {
+                cout << "Game ends in stalemate!" << endl;
+                break;
+            } else if (state == DRAW) {
+                cout << "Game ends in a draw!" << endl;
+                break;
+            }
+
+            Move move = findBestMove(3);
+            makeMove(move);
+            cout << cnt++ << endl;
+        }
+    }
 };
 
 int main() {
-    Game game("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    for (int i = 1; i <= 6; i++) {
-        U64 nodes = game.perft(i);
-        cout << "Depth " << i << ": " << nodes << " nodes" << endl;
-    }
+    Game game;
+    game.gameLoop();
+
+    // Game game(
+    //     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -
+    //     0 " "10");
+    // for (int depth = 1; depth <= 6; depth++) {
+    //     U64 nodes = game.perft(depth);
+    //     cout << "Depth: " << depth << ", Nodes: " << nodes << endl;
+    // }
+
     return 0;
 }
