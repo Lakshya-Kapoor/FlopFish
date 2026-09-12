@@ -988,13 +988,13 @@ class Game {
         generateLegalMoves(moves);
 
         Move bestMove;
-        int evalColor = colorToMove;
-        int maxScore = INT_MIN;
+        int maxScore = INT_MIN + 1;
 
         for (Move& move : moves) {
             makeMove(move);
 
-            int score = -negamax(depth - 1);
+            // int score = -negamax(depth - 1);
+            int score = -negamaxAlphaBeta(depth - 1, -INT_MAX, -maxScore);
             if (score > maxScore) {
                 maxScore = score;
                 bestMove = move;
@@ -1022,9 +1022,36 @@ class Game {
             makeMove(move);
 
             int score = -negamax(depth - 1);
+            undoMove(move);
+
             maxScore = max(maxScore, score);
+        }
+
+        return maxScore;
+    }
+
+    int negamaxAlphaBeta(int depth, int alpha, int beta) {
+        if (depth == 0) return colorToMove * evaluate();
+
+        int maxScore = INT_MIN;
+
+        vector<Move> moves;
+        generateLegalMoves(moves);
+
+        GameState state = getGameState(moves);
+        if (state == CHECKMATE) return -100000;
+        if (state == STALEMATE || state == DRAW) return 0;
+
+        for (Move& move : moves) {
+            makeMove(move);
+
+            int score = -negamaxAlphaBeta(depth - 1, -beta, -alpha);
 
             undoMove(move);
+
+            maxScore = max(maxScore, score);
+            alpha = max(alpha, score);
+            if (alpha >= beta) break;
         }
 
         return maxScore;
@@ -1051,7 +1078,7 @@ class Game {
 
             Move move;
             if (colorToMove == 1) {
-                move = findBestMove(4);
+                move = findBestMove(5);
             } else {
                 move = findBestMove(4);
             }
