@@ -1080,7 +1080,7 @@ class Game {
             if (colorToMove == 1) {
                 move = findBestMove(5);
             } else {
-                move = findBestMove(4);
+                move = findBestMove(5);
             }
 
             makeMove(move);
