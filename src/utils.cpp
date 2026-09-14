@@ -1,13 +1,5 @@
 #include "../include/utils.hpp"
 
-Piece operator|(Piece a, Piece b) {
-    return static_cast<Piece>(static_cast<U8>(a) | static_cast<U8>(b));
-}
-
-Piece operator&(Piece a, Piece b) {
-    return static_cast<Piece>(static_cast<U8>(a) & static_cast<U8>(b));
-}
-
 CastlingRights operator|(CastlingRights a, CastlingRights b) {
     return static_cast<CastlingRights>(static_cast<U8>(a) | static_cast<U8>(b));
 }
@@ -50,9 +42,9 @@ Color getPieceColor(Piece piece) {
 }
 
 bool isBlackPiece(Piece piece) {
-    return ((piece & Piece::BLACK) == Piece::BLACK);
+    return piece >= Piece::BLACK_PAWN && piece <= Piece::BLACK_KING;
 }
 
 bool isWhitePiece(Piece piece) {
-    return (piece & Piece::WHITE) == Piece::WHITE;
+    return piece >= Piece::WHITE_PAWN && piece <= Piece::WHITE_KING;
 }

@@ -863,6 +863,70 @@ class Game {
         return nodes;
     }
 
+    string moveToString(Move& move) {
+        if (move.type & CASTLING) {
+            if (move.castlingType == WHITE_KINGSIDE) return "e1g1";
+            if (move.castlingType == WHITE_QUEENSIDE) return "e1c1";
+            if (move.castlingType == BLACK_KINGSIDE) return "e8g8";
+            if (move.castlingType == BLACK_QUEENSIDE) return "e8c8";
+        }
+
+        int fromRank = move.from / 8;
+        int fromFile = move.from % 8;
+        int toRank = move.to / 8;
+        int toFile = move.to % 8;
+
+        string moveStr;
+        moveStr += ('a' + fromFile);
+        moveStr += (8 - fromRank) + '0';
+        moveStr += ('a' + toFile);
+        moveStr += (8 - toRank) + '0';
+
+        if (move.type == QUIET_PROMOTION || move.type == CAPTURE_PROMOTION) {
+            switch (move.promotionPiece) {
+                case WHITE_QUEEN:
+                case BLACK_QUEEN:
+                    moveStr += 'q';
+                    break;
+                case WHITE_ROOK:
+                case BLACK_ROOK:
+                    moveStr += 'r';
+                    break;
+                case WHITE_BISHOP:
+                case BLACK_BISHOP:
+                    moveStr += 'b';
+                    break;
+                case WHITE_KNIGHT:
+                case BLACK_KNIGHT:
+                    moveStr += 'n';
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return moveStr;
+    }
+
+    U64 perftDivide(int depth) {
+        vector<Move> moves;
+        generatePseudoLegalMoves(moves);
+
+        U64 totalNodes = 0;
+
+        for (auto& move : moves) {
+            makeMove(move);
+            if (!inCheck(-colorToMove)) {
+                U64 nodes = perft(depth - 1);
+                totalNodes += nodes;
+                cout << moveToString(move) << ": " << nodes << endl;
+            }
+            undoMove(move);
+        }
+
+        return totalNodes;
+    }
+
     int evaluateMaterial() {
         int score = 0;
         for (Piece& piece : board) {
@@ -965,7 +1029,7 @@ class Game {
 
         int score = 0;
         score += evaluateMaterial();
-        score += evaluateMobility();
+        // score += evaluateMobility();
         score += evaluatePieceSquareTables();
         return score;
     }
@@ -1059,8 +1123,10 @@ class Game {
 
     void gameLoop() {
         int cnt = 1;
-        printBoard();
         while (true) {
+            printBoard();
+            cout << cnt++ << endl;
+
             vector<Move> moves;
             generateLegalMoves(moves);
             GameState state = getGameState(moves);
@@ -1084,23 +1150,16 @@ class Game {
             }
 
             makeMove(move);
-            printBoard();
-            cout << cnt++ << endl;
         }
     }
 };
 
 int main() {
-    Game game;
-    game.gameLoop();
+    // Game game;
+    // game.gameLoop();
 
-    // Game game(
-    //     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -
-    //     0 " "10");
-    // for (int depth = 1; depth <= 6; depth++) {
-    //     U64 nodes = game.perft(depth);
-    //     cout << "Depth: " << depth << ", Nodes: " << nodes << endl;
-    // }
-
+    Game game("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+    game.printBoard();
+    cout << game.perftDivide(1) << endl;
     return 0;
 }

@@ -41,13 +41,13 @@ PositionState Position::getPositionState() {
 }
 
 void Position::initPos() {
-    board[0] = board[7] = Piece::ROOK | Piece::BLACK;
-    board[1] = board[6] = Piece::KNIGHT | Piece::BLACK;
-    board[2] = board[5] = Piece::BISHOP | Piece::BLACK;
-    board[3] = Piece::QUEEN | Piece::BLACK;
-    board[4] = Piece::KING | Piece::BLACK;
+    board[0] = board[7] = Piece::BLACK_ROOK;
+    board[1] = board[6] = Piece::BLACK_KNIGHT;
+    board[2] = board[5] = Piece::BLACK_BISHOP;
+    board[3] = Piece::BLACK_QUEEN;
+    board[4] = Piece::BLACK_KING;
     for (int i = 8; i < 16; i++) {
-        board[i] = Piece::PAWN | Piece::BLACK;
+        board[i] = Piece::BLACK_PAWN;
     }
 
     for (int i = 16; i < 48; i++) {
@@ -55,13 +55,13 @@ void Position::initPos() {
     }
 
     for (int i = 48; i < 56; i++) {
-        board[i] = Piece::PAWN | Piece::WHITE;
+        board[i] = Piece::WHITE_PAWN;
     }
-    board[56] = board[63] = Piece::ROOK | Piece::WHITE;
-    board[57] = board[62] = Piece::KNIGHT | Piece::WHITE;
-    board[58] = board[61] = Piece::BISHOP | Piece::WHITE;
-    board[59] = Piece::QUEEN | Piece::WHITE;
-    board[60] = Piece::KING | Piece::WHITE;
+    board[56] = board[63] = Piece::WHITE_ROOK;
+    board[57] = board[62] = Piece::WHITE_KNIGHT;
+    board[58] = board[61] = Piece::WHITE_BISHOP;
+    board[59] = Piece::WHITE_QUEEN;
+    board[60] = Piece::WHITE_KING;
 
     colorToMove = Color::WHITE;
     castlingRights =
@@ -89,29 +89,29 @@ void Position::parseFENPos(const string& fen) {
                 board[index++] = Piece::EMPTY;
             }
         } else if (c == 'P')
-            board[index++] = Piece::PAWN | Piece::WHITE;
+            board[index++] = Piece::WHITE_PAWN;
         else if (c == 'N')
-            board[index++] = Piece::KNIGHT | Piece::WHITE;
+            board[index++] = Piece::WHITE_KNIGHT;
         else if (c == 'B')
-            board[index++] = Piece::BISHOP | Piece::WHITE;
+            board[index++] = Piece::WHITE_BISHOP;
         else if (c == 'R')
-            board[index++] = Piece::ROOK | Piece::WHITE;
+            board[index++] = Piece::WHITE_ROOK;
         else if (c == 'Q')
-            board[index++] = Piece::QUEEN | Piece::WHITE;
+            board[index++] = Piece::WHITE_QUEEN;
         else if (c == 'K')
-            board[index++] = Piece::KING | Piece::WHITE;
+            board[index++] = Piece::WHITE_KING;
         else if (c == 'p')
-            board[index++] = Piece::PAWN | Piece::BLACK;
+            board[index++] = Piece::BLACK_PAWN;
         else if (c == 'n')
-            board[index++] = Piece::KNIGHT | Piece::BLACK;
+            board[index++] = Piece::BLACK_KNIGHT;
         else if (c == 'b')
-            board[index++] = Piece::BISHOP | Piece::BLACK;
+            board[index++] = Piece::BLACK_BISHOP;
         else if (c == 'r')
-            board[index++] = Piece::ROOK | Piece::BLACK;
+            board[index++] = Piece::BLACK_ROOK;
         else if (c == 'q')
-            board[index++] = Piece::QUEEN | Piece::BLACK;
+            board[index++] = Piece::BLACK_QUEEN;
         else if (c == 'k')
-            board[index++] = Piece::KING | Piece::BLACK;
+            board[index++] = Piece::BLACK_KING;
     }
 
     colorToMove = (colorPart == "w") ? Color::WHITE : Color::BLACK;
@@ -147,29 +147,29 @@ void Position::print() const {
             Piece piece = board[i * 8 + j];
             if (piece == Piece::EMPTY)
                 cout << ". ";
-            else if (piece == (Piece::PAWN | Piece::WHITE))
+            else if (piece == Piece::WHITE_PAWN)
                 cout << "P ";
-            else if (piece == (Piece::KNIGHT | Piece::WHITE))
+            else if (piece == Piece::WHITE_KNIGHT)
                 cout << "N ";
-            else if (piece == (Piece::BISHOP | Piece::WHITE))
+            else if (piece == Piece::WHITE_BISHOP)
                 cout << "B ";
-            else if (piece == (Piece::ROOK | Piece::WHITE))
+            else if (piece == Piece::WHITE_ROOK)
                 cout << "R ";
-            else if (piece == (Piece::QUEEN | Piece::WHITE))
+            else if (piece == Piece::WHITE_QUEEN)
                 cout << "Q ";
-            else if (piece == (Piece::KING | Piece::WHITE))
+            else if (piece == Piece::WHITE_KING)
                 cout << "K ";
-            else if (piece == (Piece::PAWN | Piece::BLACK))
+            else if (piece == Piece::BLACK_PAWN)
                 cout << "p ";
-            else if (piece == (Piece::KNIGHT | Piece::BLACK))
+            else if (piece == Piece::BLACK_KNIGHT)
                 cout << "n ";
-            else if (piece == (Piece::BISHOP | Piece::BLACK))
+            else if (piece == Piece::BLACK_BISHOP)
                 cout << "b ";
-            else if (piece == (Piece::ROOK | Piece::BLACK))
+            else if (piece == Piece::BLACK_ROOK)
                 cout << "r ";
-            else if (piece == (Piece::QUEEN | Piece::BLACK))
+            else if (piece == Piece::BLACK_QUEEN)
                 cout << "q ";
-            else if (piece == (Piece::KING | Piece::BLACK))
+            else if (piece == Piece::BLACK_KING)
                 cout << "k ";
         }
         cout << endl;
@@ -182,9 +182,17 @@ bool Position::isInsideBoard(int r, int c) const {
 }
 
 void Position::makeMove(const Move& move) {
-    if (move.type != MoveType::CASTLING &&
-        (move.type == MoveType::CAPTURE ||
-         (board[move.fromSquare] & Piece::PAWN) == Piece::PAWN)) {
+    Piece movingPiece = Piece::EMPTY;
+    if (move.type != MoveType::CASTLING) {
+        movingPiece = board[move.fromSquare];
+    }
+    bool isPawnMove =
+        movingPiece == Piece::WHITE_PAWN || movingPiece == Piece::BLACK_PAWN;
+    bool isCapture = move.type == MoveType::CAPTURE ||
+                     move.type == MoveType::CAPTURE_PROMOTION ||
+                     move.type == MoveType::EN_PASSANT;
+
+    if (isPawnMove || isCapture) {
         halfmoveClock = 0;
     } else {
         halfmoveClock++;
@@ -194,6 +202,7 @@ void Position::makeMove(const Move& move) {
 
     switch (move.type) {
         case MoveType::QUIET:
+            removeCastlingRights(move);
             board[move.toSquare] = board[move.fromSquare];
             board[move.fromSquare] = Piece::EMPTY;
             break;
@@ -205,6 +214,7 @@ void Position::makeMove(const Move& move) {
             break;
 
         case MoveType::CAPTURE:
+            removeCastlingRights(move);
             board[move.toSquare] = board[move.fromSquare];
             board[move.fromSquare] = Piece::EMPTY;
             break;
@@ -215,6 +225,7 @@ void Position::makeMove(const Move& move) {
             break;
 
         case MoveType::CAPTURE_PROMOTION:
+            removeCastlingRights(move);
             board[move.toSquare] = move.promotionPiece;
             board[move.fromSquare] = Piece::EMPTY;
             break;
@@ -228,34 +239,34 @@ void Position::makeMove(const Move& move) {
         case MoveType::CASTLING:
             switch (move.castlingType) {
                 case CastlingRights::WHITE_KINGSIDE:
-                    board[4] = Piece::EMPTY;
-                    board[5] = Piece::ROOK | Piece::WHITE;
-                    board[6] = Piece::KING | Piece::WHITE;
-                    board[7] = Piece::EMPTY;
+                    board[60] = Piece::EMPTY;
+                    board[61] = Piece::WHITE_ROOK;
+                    board[62] = Piece::WHITE_KING;
+                    board[63] = Piece::EMPTY;
                     castlingRights &= ~(CastlingRights::WHITE_KINGSIDE |
                                         CastlingRights::WHITE_QUEENSIDE);
                     break;
                 case CastlingRights::WHITE_QUEENSIDE:
-                    board[4] = Piece::EMPTY;
-                    board[3] = Piece::ROOK | Piece::WHITE;
-                    board[2] = Piece::KING | Piece::WHITE;
-                    board[0] = Piece::EMPTY;
+                    board[60] = Piece::EMPTY;
+                    board[59] = Piece::WHITE_ROOK;
+                    board[58] = Piece::WHITE_KING;
+                    board[56] = Piece::EMPTY;
                     castlingRights &= ~(CastlingRights::WHITE_KINGSIDE |
                                         CastlingRights::WHITE_QUEENSIDE);
                     break;
                 case CastlingRights::BLACK_KINGSIDE:
-                    board[60] = Piece::EMPTY;
-                    board[61] = Piece::ROOK | Piece::BLACK;
-                    board[62] = Piece::KING | Piece::BLACK;
-                    board[63] = Piece::EMPTY;
+                    board[4] = Piece::EMPTY;
+                    board[5] = Piece::BLACK_ROOK;
+                    board[6] = Piece::BLACK_KING;
+                    board[7] = Piece::EMPTY;
                     castlingRights &= ~(CastlingRights::BLACK_KINGSIDE |
                                         CastlingRights::BLACK_QUEENSIDE);
                     break;
                 case CastlingRights::BLACK_QUEENSIDE:
-                    board[60] = Piece::EMPTY;
-                    board[59] = Piece::ROOK | Piece::BLACK;
-                    board[58] = Piece::KING | Piece::BLACK;
-                    board[56] = Piece::EMPTY;
+                    board[4] = Piece::EMPTY;
+                    board[3] = Piece::BLACK_ROOK;
+                    board[2] = Piece::BLACK_KING;
+                    board[0] = Piece::EMPTY;
                     castlingRights &= ~(CastlingRights::BLACK_KINGSIDE |
                                         CastlingRights::BLACK_QUEENSIDE);
                     break;
@@ -303,15 +314,15 @@ void Position::undoMove(const Move& move, const StateInfo& savedState) {
 
         case MoveType::QUIET_PROMOTION:
             board[move.fromSquare] = isWhitePiece(move.promotionPiece)
-                                         ? Piece::PAWN | Piece::WHITE
-                                         : Piece::PAWN | Piece::BLACK;
+                                         ? Piece::WHITE_PAWN
+                                         : Piece::BLACK_PAWN;
             board[move.toSquare] = Piece::EMPTY;
             break;
 
         case MoveType::CAPTURE_PROMOTION:
             board[move.fromSquare] = isWhitePiece(move.promotionPiece)
-                                         ? Piece::PAWN | Piece::WHITE
-                                         : Piece::PAWN | Piece::BLACK;
+                                         ? Piece::WHITE_PAWN
+                                         : Piece::BLACK_PAWN;
             board[move.toSquare] = move.capturedPiece;
             break;
 
@@ -324,31 +335,31 @@ void Position::undoMove(const Move& move, const StateInfo& savedState) {
         case MoveType::CASTLING:
             switch (move.castlingType) {
                 case CastlingRights::WHITE_KINGSIDE:
-                    board[4] = Piece::KING | Piece::WHITE;
-                    board[5] = Piece::EMPTY;
-                    board[6] = Piece::EMPTY;
-                    board[7] = Piece::ROOK | Piece::WHITE;
+                    board[60] = Piece::WHITE_KING;
+                    board[61] = Piece::EMPTY;
+                    board[62] = Piece::EMPTY;
+                    board[63] = Piece::WHITE_ROOK;
                     break;
 
                 case CastlingRights::WHITE_QUEENSIDE:
-                    board[4] = Piece::KING | Piece::WHITE;
-                    board[3] = Piece::EMPTY;
-                    board[2] = Piece::EMPTY;
-                    board[0] = Piece::ROOK | Piece::WHITE;
+                    board[60] = Piece::WHITE_KING;
+                    board[59] = Piece::EMPTY;
+                    board[58] = Piece::EMPTY;
+                    board[56] = Piece::WHITE_ROOK;
                     break;
 
                 case CastlingRights::BLACK_KINGSIDE:
-                    board[60] = Piece::KING | Piece::BLACK;
-                    board[61] = Piece::EMPTY;
-                    board[62] = Piece::EMPTY;
-                    board[63] = Piece::ROOK | Piece::BLACK;
+                    board[4] = Piece::BLACK_KING;
+                    board[5] = Piece::EMPTY;
+                    board[6] = Piece::EMPTY;
+                    board[7] = Piece::BLACK_ROOK;
                     break;
 
                 case CastlingRights::BLACK_QUEENSIDE:
-                    board[60] = Piece::KING | Piece::BLACK;
-                    board[59] = Piece::EMPTY;
-                    board[58] = Piece::EMPTY;
-                    board[56] = Piece::ROOK | Piece::BLACK;
+                    board[4] = Piece::BLACK_KING;
+                    board[3] = Piece::EMPTY;
+                    board[2] = Piece::EMPTY;
+                    board[0] = Piece::BLACK_ROOK;
                     break;
 
                 default:
@@ -371,10 +382,10 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (byColor == Color::WHITE &&
-                board[newSquare] == (Piece::KNIGHT | Piece::WHITE))
+                board[newSquare] == Piece::WHITE_KNIGHT)
                 return true;
             if (byColor == Color::BLACK &&
-                board[newSquare] == (Piece::KNIGHT | Piece::BLACK))
+                board[newSquare] == Piece::BLACK_KNIGHT)
                 return true;
         }
     }
@@ -385,12 +396,12 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] != Piece::EMPTY) {
                 if (byColor == Color::WHITE &&
-                    (board[newSquare] == (Piece::BISHOP | Piece::WHITE) ||
-                     board[newSquare] == (Piece::QUEEN | Piece::WHITE)))
+                    (board[newSquare] == Piece::WHITE_BISHOP ||
+                     board[newSquare] == Piece::WHITE_QUEEN))
                     return true;
                 if (byColor == Color::BLACK &&
-                    (board[newSquare] == (Piece::BISHOP | Piece::BLACK) ||
-                     board[newSquare] == (Piece::QUEEN | Piece::BLACK)))
+                    (board[newSquare] == Piece::BLACK_BISHOP ||
+                     board[newSquare] == Piece::BLACK_QUEEN))
                     return true;
                 break;
             }
@@ -405,13 +416,13 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] != Piece::EMPTY) {
                 if (byColor == Color::WHITE &&
-                    (board[newSquare] == (Piece::ROOK | Piece::WHITE) ||
-                     board[newSquare] == (Piece::QUEEN | Piece::WHITE)) &&
+                    (board[newSquare] == Piece::WHITE_ROOK ||
+                     board[newSquare] == Piece::WHITE_QUEEN) &&
                     getPieceColor(board[newSquare]) == Color::WHITE)
                     return true;
                 if (byColor == Color::BLACK &&
-                    (board[newSquare] == (Piece::ROOK | Piece::BLACK) ||
-                     board[newSquare] == (Piece::QUEEN | Piece::BLACK)) &&
+                    (board[newSquare] == Piece::BLACK_ROOK ||
+                     board[newSquare] == Piece::BLACK_QUEEN) &&
                     getPieceColor(board[newSquare]) == Color::BLACK)
                     return true;
                 break;
@@ -426,27 +437,27 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (byColor == Color::WHITE &&
-                board[newSquare] == (Piece::KING | Piece::WHITE))
+                board[newSquare] == Piece::WHITE_KING)
                 return true;
             if (byColor == Color::BLACK &&
-                board[newSquare] == (Piece::KING | Piece::BLACK))
+                board[newSquare] == Piece::BLACK_KING)
                 return true;
         }
     }
 
     if (byColor == Color::WHITE) {
-        if (isInsideBoard(r - 1, c - 1) &&
-            board[(r - 1) * 8 + (c - 1)] == (Piece::PAWN | Piece::WHITE))
-            return true;
-        if (isInsideBoard(r - 1, c + 1) &&
-            board[(r - 1) * 8 + (c + 1)] == (Piece::PAWN | Piece::WHITE))
-            return true;
-    } else {
         if (isInsideBoard(r + 1, c - 1) &&
-            board[(r + 1) * 8 + (c - 1)] == (Piece::PAWN | Piece::BLACK))
+            board[(r + 1) * 8 + (c - 1)] == Piece::WHITE_PAWN)
             return true;
         if (isInsideBoard(r + 1, c + 1) &&
-            board[(r + 1) * 8 + (c + 1)] == (Piece::PAWN | Piece::BLACK))
+            board[(r + 1) * 8 + (c + 1)] == Piece::WHITE_PAWN)
+            return true;
+    } else {
+        if (isInsideBoard(r - 1, c - 1) &&
+            board[(r - 1) * 8 + (c - 1)] == Piece::BLACK_PAWN)
+            return true;
+        if (isInsideBoard(r - 1, c + 1) &&
+            board[(r - 1) * 8 + (c + 1)] == Piece::BLACK_PAWN)
             return true;
     }
 
@@ -456,11 +467,11 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
 bool Position::inCheck(Color color) const {
     int kingSquare = -1;
     for (int i = 0; i < 64; i++) {
-        if (color == Color::WHITE && board[i] == (Piece::KING | Piece::WHITE)) {
+        if (color == Color::WHITE && board[i] == Piece::WHITE_KING) {
             kingSquare = i;
             break;
         }
-        if (color == Color::BLACK && board[i] == (Piece::KING | Piece::BLACK)) {
+        if (color == Color::BLACK && board[i] == Piece::BLACK_KING) {
             kingSquare = i;
             break;
         }

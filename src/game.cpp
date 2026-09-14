@@ -42,7 +42,7 @@ void Game::play() {
     }
 }
 
-int main() {
-    Game game(new FlopFishv1(), new FlopFishv1());
-    game.play();
-}
+// int main() {
+//     Game game(new FlopFishv1(), new FlopFishv1());
+//     game.play();
+// }

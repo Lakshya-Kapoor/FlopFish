@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "utils.hpp"
 
 enum class MoveType : U8 {
@@ -30,4 +32,6 @@ struct Move {
                                  Piece captured);
     static Move enPassant(int from, int to, Piece captured);
     static Move castling(CastlingRights castlingType);
+
+    std::string toString() const;
 };

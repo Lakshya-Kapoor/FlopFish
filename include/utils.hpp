@@ -12,19 +12,19 @@ Color operator-(Color color);
 
 enum class Piece : U8 {
     EMPTY = 0,
-    PAWN = 1,
-    KNIGHT = 2,
-    BISHOP = 3,
-    ROOK = 4,
-    QUEEN = 5,
-    KING = 6,
-
-    WHITE = 8,
-    BLACK = 16
+    WHITE_PAWN,
+    WHITE_KNIGHT,
+    WHITE_BISHOP,
+    WHITE_ROOK,
+    WHITE_QUEEN,
+    WHITE_KING,
+    BLACK_PAWN,
+    BLACK_KNIGHT,
+    BLACK_BISHOP,
+    BLACK_ROOK,
+    BLACK_QUEEN,
+    BLACK_KING
 };
-
-Piece operator|(Piece a, Piece b);
-Piece operator&(Piece a, Piece b);
 
 bool isWhitePiece(Piece piece);
 bool isBlackPiece(Piece piece);

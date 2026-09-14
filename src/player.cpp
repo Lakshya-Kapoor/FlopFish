@@ -48,25 +48,25 @@ int FlopFishv1::evaluateMaterial(Position& pos) {
 
     for (int square = 0; square < 64; square++) {
         Piece piece = pos.getPieceAt(square);
-        if (piece == (Piece::WHITE | Piece::PAWN))
+        if (piece == Piece::WHITE_PAWN)
             score += 100;
-        else if (piece == (Piece::WHITE | Piece::KNIGHT))
+        else if (piece == Piece::WHITE_KNIGHT)
             score += 320;
-        else if (piece == (Piece::WHITE | Piece::BISHOP))
+        else if (piece == Piece::WHITE_BISHOP)
             score += 330;
-        else if (piece == (Piece::WHITE | Piece::ROOK))
+        else if (piece == Piece::WHITE_ROOK)
             score += 500;
-        else if (piece == (Piece::WHITE | Piece::QUEEN))
+        else if (piece == Piece::WHITE_QUEEN)
             score += 900;
-        else if (piece == (Piece::BLACK | Piece::PAWN))
+        else if (piece == Piece::BLACK_PAWN)
             score -= 100;
-        else if (piece == (Piece::BLACK | Piece::KNIGHT))
+        else if (piece == Piece::BLACK_KNIGHT)
             score -= 320;
-        else if (piece == (Piece::BLACK | Piece::BISHOP))
+        else if (piece == Piece::BLACK_BISHOP)
             score -= 330;
-        else if (piece == (Piece::BLACK | Piece::ROOK))
+        else if (piece == Piece::BLACK_ROOK)
             score -= 500;
-        else if (piece == (Piece::BLACK | Piece::QUEEN))
+        else if (piece == Piece::BLACK_QUEEN)
             score -= 900;
     }
     return score;
@@ -97,25 +97,25 @@ int FlopFishv1::evaluatePieceSquareTables(Position& pos) {
     int score = 0;
     for (int square = 0; square < 64; square++) {
         Piece piece = pos.getPieceAt(square);
-        if (piece == (Piece::WHITE | Piece::PAWN))
+        if (piece == Piece::WHITE_PAWN)
             score += pawnTable[square];
-        else if (piece == (Piece::WHITE | Piece::KNIGHT))
+        else if (piece == Piece::WHITE_KNIGHT)
             score += knightTable[square];
-        else if (piece == (Piece::WHITE | Piece::BISHOP))
+        else if (piece == Piece::WHITE_BISHOP)
             score += bishopTable[square];
-        else if (piece == (Piece::WHITE | Piece::ROOK))
+        else if (piece == Piece::WHITE_ROOK)
             score += rookTable[square];
-        else if (piece == (Piece::WHITE | Piece::QUEEN))
+        else if (piece == Piece::WHITE_QUEEN)
             score += queenTable[square];
-        else if (piece == (Piece::BLACK | Piece::PAWN))
+        else if (piece == Piece::BLACK_PAWN)
             score -= pawnTable[63 - square];
-        else if (piece == (Piece::BLACK | Piece::KNIGHT))
+        else if (piece == Piece::BLACK_KNIGHT)
             score -= knightTable[63 - square];
-        else if (piece == (Piece::BLACK | Piece::BISHOP))
+        else if (piece == Piece::BLACK_BISHOP)
             score -= bishopTable[63 - square];
-        else if (piece == (Piece::BLACK | Piece::ROOK))
+        else if (piece == Piece::BLACK_ROOK)
             score -= rookTable[63 - square];
-        else if (piece == (Piece::BLACK | Piece::QUEEN))
+        else if (piece == Piece::BLACK_QUEEN)
             score -= queenTable[63 - square];
     }
 
@@ -124,13 +124,18 @@ int FlopFishv1::evaluatePieceSquareTables(Position& pos) {
 
 int FlopFishv1::evaluate(Position& pos) {
     PositionState state = pos.getPositionState();
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) {
+        if (pos.getColorToMove() == Color::WHITE)
+            return -100000;
+        else
+            return 100000;
+    }
     if (state == PositionState::STALEMATE || state == PositionState::DRAW)
         return 0;
 
     int score = 0;
     score += evaluateMaterial(pos);
-    score += evaluateMobility(pos);
+    // score += evaluateMobility(pos);
     score += evaluatePieceSquareTables(pos);
     return score;
 }
@@ -182,6 +187,8 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
             return 0;
     }
 
+    int maxScore = -INF;
+
     for (const Move& move : moves) {
         StateInfo savedState;
         pos.makeMove(move, savedState);
@@ -189,11 +196,12 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
         int eval = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
         pos.undoMove(move, savedState);
 
-        if (eval >= beta) return beta;  // Beta cutoff
+        maxScore = max(maxScore, eval);
         alpha = max(alpha, eval);
+        if (alpha >= beta) return maxScore;
     }
 
-    return alpha;
+    return maxScore;
 }
 
 Move FlopFishv1::getMove(Position pos) {
