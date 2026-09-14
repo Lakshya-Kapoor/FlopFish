@@ -205,7 +205,7 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
 }
 
 Move FlopFishv1::getMove(Position pos) {
-    int depth = 5;
+    int depth = 3;
 
     vector<Move> moves = pos.generateLegalMoves();
     Move bestMove;
