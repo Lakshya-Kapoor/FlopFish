@@ -1,4 +1,4 @@
-#include "../include/utils.hpp"
+#include "utils.hpp"
 
 CastlingRights operator|(CastlingRights a, CastlingRights b) {
     return static_cast<CastlingRights>(static_cast<U8>(a) | static_cast<U8>(b));
@@ -47,4 +47,31 @@ bool isBlackPiece(Piece piece) {
 
 bool isWhitePiece(Piece piece) {
     return piece >= Piece::WHITE_PAWN && piece <= Piece::WHITE_KING;
+}
+
+int getPieceValue(Piece piece) {
+    switch (piece) {
+        case Piece::EMPTY:
+            return 0;
+        case Piece::WHITE_PAWN:
+        case Piece::BLACK_PAWN:
+            return 100;
+        case Piece::WHITE_KNIGHT:
+        case Piece::BLACK_KNIGHT:
+            return 320;
+        case Piece::WHITE_BISHOP:
+        case Piece::BLACK_BISHOP:
+            return 330;
+        case Piece::WHITE_ROOK:
+        case Piece::BLACK_ROOK:
+            return 500;
+        case Piece::WHITE_QUEEN:
+        case Piece::BLACK_QUEEN:
+            return 900;
+        case Piece::WHITE_KING:
+        case Piece::BLACK_KING:
+            return 20000;
+        default:
+            return 0;
+    }
 }

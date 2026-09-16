@@ -1,4 +1,4 @@
-#include "../include/move.hpp"
+#include "move.hpp"
 
 #include <string>
 

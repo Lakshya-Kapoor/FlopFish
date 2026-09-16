@@ -1,4 +1,4 @@
-#include "../include/position.hpp"
+#include "position.hpp"
 
 #include <iostream>
 #include <sstream>

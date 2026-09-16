@@ -1,9 +1,9 @@
-#include "../include/game.hpp"
+#include "game.hpp"
 
 #include <iostream>
 #include <vector>
 
-#include "../include/move.hpp"
+#include "move.hpp"
 
 using namespace std;
 
@@ -37,12 +37,37 @@ void Game::play() {
         }
 
         Player* currentPlayer = getCurrentPlayer();
-        Move move = currentPlayer->getMove(pos);
+        Move move = currentPlayer->getMove(pos).move;
         pos.makeMove(move);
     }
 }
 
 int main() {
-    Game game(new FlopFishv1(), new FlopFishv1());
+    // Position pos(
+    //     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -
+    //     0 " "10");
+    // Config config;
+    // cout << "Enter search depth: ";
+    // cin >> config.depth;
+
+    // cout << "Reorder moves? (1 for yes, 0 for no): ";
+    // cin >> config.reorderMoves;
+
+    // if (config.reorderMoves) {
+    //     cout << "Reorder captures? (1 for yes, 0 for no): ";
+    //     cin >> config.reorderCaptures;
+    // } else {
+    //     config.reorderCaptures = false;
+    // }
+
+    // FlopFishv1 p1(config);
+    // Result res = p1.getMove(pos);
+
+    // cout << "Best move: " << res.move.toString() << endl;
+    // cout << "Nodes visited: " << res.nodesVisited << endl;
+
+    FlopFishv1 p1({depth : 3, reorderMoves : true, reorderCaptures : true});
+    FlopFishv1 p2({depth : 3, reorderMoves : true, reorderCaptures : true});
+    Game game(&p1, &p2);
     game.play();
 }

@@ -29,6 +29,7 @@ enum class Piece : U8 {
 bool isWhitePiece(Piece piece);
 bool isBlackPiece(Piece piece);
 Color getPieceColor(Piece piece);
+int getPieceValue(Piece piece);
 
 enum class CastlingRights : U8 {
     NONE = 0,

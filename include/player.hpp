@@ -5,18 +5,32 @@
 #include "move.hpp"
 #include "position.hpp"
 
+struct Result {
+    Move move;
+    U64 nodesVisited = 0;
+};
+
 class Player {
    public:
-    virtual Move getMove(Position pos) = 0;
+    virtual Result getMove(Position pos) = 0;
 };
 
 class Human : public Player {
    public:
-    Move getMove(Position pos) override;
+    Result getMove(Position pos) override;
+};
+
+struct Config {
+    int depth;
+    bool reorderMoves = true;
+    bool reorderCaptures = true;
 };
 
 class FlopFishv1 : public Player {
    private:
+    Config config;
+    Result result;
+
     int evaluate(Position& pos);
     int evaluateMaterial(Position& pos);
     int evaluateMobility(Position& pos);
@@ -25,8 +39,11 @@ class FlopFishv1 : public Player {
     int negamax(Position& pos, int depth);
     int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta);
 
+    void moveOrdering(std::vector<Move>& moves, const Position& pos);
+
    public:
     FlopFishv1();
+    FlopFishv1(Config config);
 
-    Move getMove(Position pos) override;
+    Result getMove(Position pos) override;
 };

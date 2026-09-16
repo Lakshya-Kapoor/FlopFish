@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "../include/position.hpp"
+#include "position.hpp"
 using namespace std;
 
 struct PerftCase {

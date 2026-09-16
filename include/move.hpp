@@ -20,8 +20,8 @@ struct Move {
     int fromSquare;
     int toSquare;
 
-    Piece promotionPiece;
     Piece capturedPiece;
+    Piece promotionPiece;
     CastlingRights castlingType;
 
     static Move quiet(int from, int to);
