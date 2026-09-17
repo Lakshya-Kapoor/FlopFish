@@ -43,7 +43,8 @@ void Game::play() {
 }
 
 int main() {
-    Position pos("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    Position pos(
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
     Config config;
     cout << "Enter search depth: ";
     cin >> config.depth;
@@ -58,7 +59,7 @@ int main() {
     //     config.reorderCaptures = false;
     // }
 
-    FlopFishv1 p1(config);
+    FlopFishv3 p1(config);
     Result res = p1.getMove(pos);
 
     cout << "Best move: " << res.move.toString() << endl;

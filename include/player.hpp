@@ -27,7 +27,7 @@ struct Config {
 };
 
 class FlopFishv1 : public Player {
-   private:
+   protected:
     Config config;
     Result result;
 
@@ -44,6 +44,28 @@ class FlopFishv1 : public Player {
    public:
     FlopFishv1();
     FlopFishv1(Config config);
+
+    Result getMove(Position pos) override;
+};
+
+class FlopFishv2 : public FlopFishv1 {
+   public:
+    FlopFishv2();
+    FlopFishv2(Config config);
+
+    Result getMove(Position pos) override;
+};
+
+class FlopFishv3 : public FlopFishv1 {
+   protected:
+    Move pv[32][32];  // Principal Variation table
+
+    int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta, int ply,
+                         bool usePV);
+
+   public:
+    FlopFishv3();
+    FlopFishv3(Config config);
 
     Result getMove(Position pos) override;
 };
