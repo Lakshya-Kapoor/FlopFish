@@ -60,12 +60,24 @@ class FlopFishv3 : public FlopFishv1 {
    protected:
     Move pv[32][32];  // Principal Variation table
 
-    int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta, int ply,
-                         bool usePV);
+    virtual int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
+                                 int ply, bool usePV);
 
    public:
     FlopFishv3();
     FlopFishv3(Config config);
 
     Result getMove(Position pos) override;
+};
+
+class FlopFishv4 : public FlopFishv3 {
+   protected:
+    int quiescenceSearch(Position& pos, int alpha, int beta);
+
+    int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta, int ply,
+                         bool usePV) override;
+
+   public:
+    FlopFishv4();
+    FlopFishv4(Config config);
 };
