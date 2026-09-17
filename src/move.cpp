@@ -110,3 +110,32 @@ string Move::toString() const {
 
     return moveStr;
 }
+
+
+bool Move::operator!=(const Move& other) const {
+    if(other.type!= this->type) return true;
+
+    switch (this->type) {
+        case MoveType::QUIET:
+        case MoveType::DOUBLE_PUSH:
+            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare;
+        
+        case MoveType::CAPTURE:
+        case MoveType::EN_PASSANT:
+            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->capturedPiece != other.capturedPiece;
+
+        case MoveType::QUIET_PROMOTION:
+            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->promotionPiece != other.promotionPiece;
+
+        case MoveType::CAPTURE_PROMOTION:
+            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->promotionPiece != other.promotionPiece || this->capturedPiece != other.capturedPiece;
+
+        case MoveType::CASTLING:
+            return this->castlingType != other.castlingType;
+        
+        default:
+            break;
+    }
+
+    return false;
+}

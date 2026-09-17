@@ -22,7 +22,7 @@ struct Move {
 
     Piece capturedPiece;
     Piece promotionPiece;
-    CastlingRights castlingType;
+    CastlingRights castlingType; //represents the type of castling (kingside or queenside) and player color
 
     static Move quiet(int from, int to);
     static Move doublePush(int from, int to);
@@ -34,4 +34,6 @@ struct Move {
     static Move castling(CastlingRights castlingType);
 
     std::string toString() const;
+
+    bool operator!=(const Move& other) const;
 };

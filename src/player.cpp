@@ -185,30 +185,75 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
     return maxScore;
 }
 
-Result FlopFishv1::getMove(Position pos) {
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
+// Result FlopFishv1::getMove(Position pos) {
+//     vector<Move> moves = pos.generateLegalMoves();
+//     if (config.reorderMoves) moveOrdering(moves, pos);
 
+//     int bestScore = -INF;
+//     int alpha = -INF;
+//     int beta = INF;
+
+//     for (const Move& move : moves) {
+//         StateInfo savedState;
+//         pos.makeMove(move, savedState);
+
+//         int score = -negamaxAlphaBeta(pos, config.depth - 1, -beta, -alpha);
+
+//         pos.undoMove(move, savedState);
+
+//         if (score > bestScore) {
+//             bestScore = score;
+//             result.move = move;
+//         }
+
+//         alpha = max(alpha, score);
+//     }
+
+//     return result;
+// }
+
+Result FlopFishv1::getMove(Position pos) {
     int bestScore = -INF;
+    Move bestMove;
     int alpha = -INF;
     int beta = INF;
+    int depth = config.depth;
 
-    for (const Move& move : moves) {
-        StateInfo savedState;
-        pos.makeMove(move, savedState);
+    for(int depth = 1; depth <= config.depth; depth++) {
 
-        int score = -negamaxAlphaBeta(pos, config.depth - 1, -beta, -alpha);
+        vector<Move> moves = pos.generateLegalMoves();
+        if (config.reorderMoves) moveOrdering(moves, pos);
 
-        pos.undoMove(move, savedState);
+        if (depth > 1) {
+            int idx = 0;
 
-        if (score > bestScore) {
-            bestScore = score;
-            result.move = move;
+            while(moves[idx] != bestMove) idx++;
+            while(idx > 0) {
+                moves[idx] = moves[idx - 1];
+                idx--;
+            }
+
+            moves[0] = bestMove;
         }
-
-        alpha = max(alpha, score);
+        
+        for (const Move& move : moves) {
+            StateInfo savedState;
+            pos.makeMove(move, savedState);
+    
+            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
+    
+            pos.undoMove(move, savedState);
+    
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+    
+            alpha = max(alpha, score);
+        }
     }
-
+    
+    result.move = bestMove;
     return result;
 }
 

@@ -40,7 +40,7 @@ enum class CastlingRights : U8 {
 };
 
 CastlingRights operator|(CastlingRights a, CastlingRights b);
-CastlingRights& operator&=(CastlingRights& a, CastlingRights b);
+CastlingRights& operator|=(CastlingRights& a, CastlingRights b);
 CastlingRights operator&(CastlingRights a, CastlingRights b);
 CastlingRights& operator&=(CastlingRights& a, CastlingRights b);
 CastlingRights operator~(CastlingRights a);

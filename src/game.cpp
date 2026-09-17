@@ -43,12 +43,10 @@ void Game::play() {
 }
 
 int main() {
-    // Position pos(
-    //     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -
-    //     0 " "10");
-    // Config config;
-    // cout << "Enter search depth: ";
-    // cin >> config.depth;
+    Position pos("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    Config config;
+    cout << "Enter search depth: ";
+    cin >> config.depth;
 
     // cout << "Reorder moves? (1 for yes, 0 for no): ";
     // cin >> config.reorderMoves;
@@ -60,14 +58,14 @@ int main() {
     //     config.reorderCaptures = false;
     // }
 
-    // FlopFishv1 p1(config);
-    // Result res = p1.getMove(pos);
+    FlopFishv1 p1(config);
+    Result res = p1.getMove(pos);
 
-    // cout << "Best move: " << res.move.toString() << endl;
-    // cout << "Nodes visited: " << res.nodesVisited << endl;
+    cout << "Best move: " << res.move.toString() << endl;
+    cout << "Nodes visited: " << res.nodesVisited << endl;
 
-    FlopFishv1 p1({depth : 3, reorderMoves : true, reorderCaptures : true});
-    FlopFishv1 p2({depth : 3, reorderMoves : true, reorderCaptures : true});
-    Game game(&p1, &p2);
-    game.play();
+    // FlopFishv1 p1({depth : 3, reorderMoves : true, reorderCaptures : true});
+    // FlopFishv1 p2({depth : 3, reorderMoves : true, reorderCaptures : true});
+    // Game game(&p1, &p2);
+    // game.play();
 }
