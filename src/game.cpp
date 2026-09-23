@@ -43,29 +43,31 @@ void Game::play() {
 }
 
 int main() {
-    // Position pos;
-    // Config config;
-    // cout << "Enter search depth: ";
-    // cin >> config.depth;
+    Position pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    // cout << "Reorder moves? (1 for yes, 0 for no): ";
-    // cin >> config.reorderMoves;
+    Config config;
+    cout << "Enter search depth: ";
+    cin >> config.depth;
 
-    // if (config.reorderMoves) {
-    //     cout << "Reorder captures? (1 for yes, 0 for no): ";
-    //     cin >> config.reorderCaptures;
-    // } else {
-    //     config.reorderCaptures = false;
-    // }
+    Player* p;
+    int version;
+    cout << "Enter FlopFish version (1 or 2 or 3): ";
+    cin >> version;
+    if (version == 1) {
+        p = new FlopFishv1(config);
+    } else if (version == 2) {
+        p = new FlopFishv2(config);
+    } else if (version == 3) {
+        p = new FlopFishv3(config);
+    } else {
+        cout << "Invalid version!" << endl;
+        return 1;
+    }
 
-    // FlopFishv4 p1(config);
-    // Result res = p1.getMove(pos);
+    Result res = p->getMove(pos);
 
-    // cout << "Best move: " << res.move.toString() << endl;
-    // cout << "Nodes visited: " << res.nodesVisited << endl;
-
-    FlopFishv3 p1({depth : 6});
-    FlopFishv4 p2({depth : 6});
-    Game game(&p1, &p2);
-    game.play();
+    cout << "Best move: " << res.move.toString() << endl;
+    cout << "Nodes visited: " << res.nodesVisited << endl;
+    cout << "Time taken: " << res.timeTaken << " seconds" << endl;
+    cout << "Nodes per second: " << res.nodesVisited / res.timeTaken << endl;
 }

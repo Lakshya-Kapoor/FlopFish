@@ -1,6 +1,13 @@
-#include "player.hpp"
+/*
+    FlopFish v1: A simple chess engine that uses the negamax algorithm with
+   alpha-beta pruning to search for the best move. Move reordering is
+   implemented to improve the pruning.
+*/
 
 #include <algorithm>
+#include <chrono>
+
+#include "player.hpp"
 
 using namespace std;
 
@@ -210,6 +217,8 @@ void FlopFishv1::moveOrdering(std::vector<Move>& moves, const Position& pos) {
 }
 
 Result FlopFishv1::getMove(Position pos) {
+    auto startTime = chrono::steady_clock::now();
+
     vector<Move> moves = pos.generateLegalMoves();
     if (config.reorderMoves) moveOrdering(moves, pos);
 
@@ -233,271 +242,8 @@ Result FlopFishv1::getMove(Position pos) {
         alpha = max(alpha, score);
     }
 
+    auto endTime = chrono::steady_clock::now();
+    result.timeTaken = chrono::duration<double>(endTime - startTime).count();
+
     return result;
-}
-
-FlopFishv2::FlopFishv2() {}
-FlopFishv2::FlopFishv2(Config config) : FlopFishv1(config) {}
-
-Result FlopFishv2::getMove(Position pos) {
-    Move bestMove;
-
-    // Keeping generation to the outside of the loop avoids generating moves
-    // multipole times and also allows us to keep previous best moves from
-    // shallower depths to the front
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
-    for (int depth = 1; depth <= config.depth; depth++) {
-        int bestScore = -INF;
-        int alpha = -INF;
-        int beta = INF;
-
-        if (depth > 1) {
-            int idx = 0;
-
-            while (moves[idx] != bestMove) idx++;
-            while (idx > 0) {
-                moves[idx] = moves[idx - 1];
-                idx--;
-            }
-
-            moves[0] = bestMove;
-        }
-
-        for (const Move& move : moves) {
-            StateInfo savedState;
-            pos.makeMove(move, savedState);
-
-            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
-
-            pos.undoMove(move, savedState);
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-
-            alpha = max(alpha, score);
-        }
-    }
-
-    result.move = bestMove;
-    return result;
-}
-
-FlopFishv3::FlopFishv3() {}
-FlopFishv3::FlopFishv3(Config config) : FlopFishv1(config) {}
-
-int FlopFishv3::negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
-                                 int ply, bool usePV) {
-    result.nodesVisited++;
-    if (depth == 0) return evaluate(pos);
-
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
-    if (moves.empty()) {
-        PositionState state = pos.getPositionState();
-        if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
-            return 0;
-    }
-
-    if (usePV && depth > 1) {
-        int idx = 0;
-
-        while (idx < (int)moves.size() && moves[idx] != pv[1][ply - 1]) idx++;
-
-        if (idx < (int)moves.size()) {
-            while (idx > 0) {
-                moves[idx] = moves[idx - 1];
-                idx--;
-            }
-
-            moves[0] = pv[1][ply - 1];
-        }
-    }
-
-    int maxScore = -INF;
-
-    for (const Move& move : moves) {
-        StateInfo savedState;
-        pos.makeMove(move, savedState);
-
-        int score =
-            -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha, ply + 1, usePV);
-        usePV = false;  // Only use PV for the first move at each depth
-
-        pos.undoMove(move, savedState);
-
-        if (score > maxScore) {
-            maxScore = score;
-        }
-
-        if (score > alpha) {
-            alpha = score;
-
-            pv[ply][0] = move;
-            for (int len = 1; len < depth; len++) {
-                pv[ply][len] = pv[ply + 1][len - 1];
-            }
-        }
-
-        if (alpha >= beta) break;
-    }
-
-    return maxScore;
-}
-
-Result FlopFishv3::getMove(Position pos) {
-    int ply = 1;
-    bool usePV = false;  // Use Principal Variation for move ordering
-
-    // Keeping generation to the outside of the loop avoids generating moves
-    // multipole times and also allows us to keep previous best moves from
-    // shallower depths to the front
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
-    for (int depth = 1; depth <= config.depth; depth++) {
-        int bestScore = -INF;
-        int alpha = -INF;
-        int beta = INF;
-
-        if (depth > 1) {
-            int idx = 0;
-
-            while (idx < (int)moves.size() && moves[idx] != pv[1][ply - 1])
-                idx++;
-
-            if (idx < (int)moves.size()) {
-                while (idx > 0) {
-                    moves[idx] = moves[idx - 1];
-                    idx--;
-                }
-
-                moves[0] = pv[1][ply - 1];
-                usePV = true;
-            }
-        }
-
-        for (const Move& move : moves) {
-            StateInfo savedState;
-            pos.makeMove(move, savedState);
-
-            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha,
-                                          ply + 1, usePV);
-            usePV = false;
-
-            pos.undoMove(move, savedState);
-
-            if (score > bestScore) {
-                bestScore = score;
-
-                pv[ply][0] = move;
-                for (int len = 1; len < depth; len++) {
-                    pv[ply][len] = pv[ply + 1][len - 1];
-                }
-            }
-
-            alpha = max(alpha, score);
-        }
-    }
-
-    result.move = pv[ply][0];
-    return result;
-}
-
-FlopFishv4::FlopFishv4() {}
-FlopFishv4::FlopFishv4(Config config) : FlopFishv3(config) {}
-
-int FlopFishv4::negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
-                                 int ply, bool usePV) {
-    result.nodesVisited++;
-    if (depth == 0) return quiescenceSearch(pos, -beta, -alpha);
-
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
-    if (moves.empty()) {
-        PositionState state = pos.getPositionState();
-        if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
-            return 0;
-    }
-
-    if (usePV && depth > 1) {
-        int idx = 0;
-
-        while (idx < (int)moves.size() && moves[idx] != pv[1][ply - 1]) idx++;
-
-        if (idx < (int)moves.size()) {
-            while (idx > 0) {
-                moves[idx] = moves[idx - 1];
-                idx--;
-            }
-
-            moves[0] = pv[1][ply - 1];
-        }
-    }
-
-    int maxScore = -INF;
-
-    for (const Move& move : moves) {
-        StateInfo savedState;
-        pos.makeMove(move, savedState);
-
-        int score =
-            -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha, ply + 1, usePV);
-        usePV = false;  // Only use PV for the first move at each depth
-
-        pos.undoMove(move, savedState);
-
-        if (score > maxScore) {
-            maxScore = score;
-        }
-
-        if (score > alpha) {
-            alpha = score;
-
-            pv[ply][0] = move;
-            for (int len = 1; len < depth; len++) {
-                pv[ply][len] = pv[ply + 1][len - 1];
-            }
-        }
-
-        if (alpha >= beta) break;
-    }
-
-    return maxScore;
-}
-
-int FlopFishv4::quiescenceSearch(Position& pos, int alpha, int beta) {
-    result.nodesVisited++;
-    int standPat = evaluate(pos);
-
-    if (standPat >= beta) return beta;
-    if (alpha < standPat) alpha = standPat;
-
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
-    for (const Move& move : moves) {
-        if (move.type != MoveType::CAPTURE &&
-            move.type != MoveType::CAPTURE_PROMOTION &&
-            move.type != MoveType::EN_PASSANT)
-            continue;
-
-        StateInfo savedState;
-        pos.makeMove(move, savedState);
-
-        int score = -quiescenceSearch(pos, -beta, -alpha);
-        pos.undoMove(move, savedState);
-
-        if (score >= beta) return beta;
-        if (score > alpha) alpha = score;
-    }
-
-    return alpha;
 }

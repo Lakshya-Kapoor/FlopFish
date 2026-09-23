@@ -11,9 +11,11 @@ add_compile_options(-O3)
 add_library(flopfish_engine
     src/move.cpp
     src/move_generation.cpp
-    src/player.cpp
     src/position.cpp
     src/utils.cpp
+    src/flopfish_v1.cpp
+    src/flopfish_v2.cpp
+    src/flopfish_v3.cpp
 )
 
 target_include_directories(flopfish_engine PUBLIC include)
