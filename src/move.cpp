@@ -4,55 +4,62 @@
 
 using namespace std;
 
-Move Move::quiet(int from, int to) {
+Move Move::quiet(int from, int to, Piece movedPiece) {
     Move m;
     m.type = MoveType::QUIET;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     return m;
 }
 
-Move Move::doublePush(int from, int to) {
+Move Move::doublePush(int from, int to, Piece movedPiece) {
     Move m;
     m.type = MoveType::DOUBLE_PUSH;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     return m;
 }
 
-Move Move::capture(int from, int to, Piece captured) {
+Move Move::capture(int from, int to, Piece movedPiece, Piece captured) {
     Move m;
     m.type = MoveType::CAPTURE;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     m.capturedPiece = captured;
     return m;
 }
 
-Move Move::quietPromotion(int from, int to, Piece promotion) {
+Move Move::quietPromotion(int from, int to, Piece movedPiece, Piece promotion) {
     Move m;
     m.type = MoveType::QUIET_PROMOTION;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     m.promotionPiece = promotion;
     return m;
 }
 
-Move Move::capturePromotion(int from, int to, Piece promotion, Piece captured) {
+Move Move::capturePromotion(int from, int to, Piece movedPiece, Piece promotion,
+                            Piece captured) {
     Move m;
     m.type = MoveType::CAPTURE_PROMOTION;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     m.promotionPiece = promotion;
     m.capturedPiece = captured;
     return m;
 }
 
-Move Move::enPassant(int from, int to, Piece captured) {
+Move Move::enPassant(int from, int to, Piece movedPiece, Piece captured) {
     Move m;
-    m.type = MoveType::EN_PASSANT;
+    m.type = MoveType::EN_PASSANT_CAPTURE;
     m.fromSquare = from;
     m.toSquare = to;
+    m.movedPiece = movedPiece;
     m.capturedPiece = captured;
     return m;
 }
@@ -111,28 +118,39 @@ string Move::toString() const {
     return moveStr;
 }
 
-
 bool Move::operator!=(const Move& other) const {
-    if(other.type!= this->type) return true;
+    if (other.type != this->type) return true;
 
     switch (this->type) {
         case MoveType::QUIET:
         case MoveType::DOUBLE_PUSH:
-            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare;
-        
+            return this->fromSquare != other.fromSquare ||
+                   this->toSquare != other.toSquare ||
+                   this->movedPiece != other.movedPiece;
+
         case MoveType::CAPTURE:
-        case MoveType::EN_PASSANT:
-            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->capturedPiece != other.capturedPiece;
+        case MoveType::EN_PASSANT_CAPTURE:
+            return this->fromSquare != other.fromSquare ||
+                   this->toSquare != other.toSquare ||
+                   this->movedPiece != other.movedPiece ||
+                   this->capturedPiece != other.capturedPiece;
 
         case MoveType::QUIET_PROMOTION:
-            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->promotionPiece != other.promotionPiece;
+            return this->fromSquare != other.fromSquare ||
+                   this->toSquare != other.toSquare ||
+                   this->movedPiece != other.movedPiece ||
+                   this->promotionPiece != other.promotionPiece;
 
         case MoveType::CAPTURE_PROMOTION:
-            return this->fromSquare != other.fromSquare || this->toSquare != other.toSquare || this->promotionPiece != other.promotionPiece || this->capturedPiece != other.capturedPiece;
+            return this->fromSquare != other.fromSquare ||
+                   this->toSquare != other.toSquare ||
+                   this->movedPiece != other.movedPiece ||
+                   this->promotionPiece != other.promotionPiece ||
+                   this->capturedPiece != other.capturedPiece;
 
         case MoveType::CASTLING:
             return this->castlingType != other.castlingType;
-        
+
         default:
             break;
     }

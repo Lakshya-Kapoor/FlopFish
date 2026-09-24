@@ -12,11 +12,11 @@ void Position::generateKnightMoves(int square, vector<Move>& moves) {
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] == Piece::EMPTY) {
-                moves.push_back(Move::quiet(square, newSquare));
+                moves.push_back(Move::quiet(square, newSquare, board[square]));
             } else if (getPieceColor(board[newSquare]) !=
                        getPieceColor(board[square])) {
-                moves.push_back(
-                    Move::capture(square, newSquare, board[newSquare]));
+                moves.push_back(Move::capture(square, newSquare, board[square],
+                                              board[newSquare]));
             }
         }
     }
@@ -30,12 +30,12 @@ void Position::generateBishopMoves(int square, vector<Move>& moves) {
         while (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] == Piece::EMPTY) {
-                moves.push_back(Move::quiet(square, newSquare));
+                moves.push_back(Move::quiet(square, newSquare, board[square]));
             } else {
                 if (getPieceColor(board[newSquare]) !=
                     getPieceColor(board[square])) {
-                    moves.push_back(
-                        Move::capture(square, newSquare, board[newSquare]));
+                    moves.push_back(Move::capture(
+                        square, newSquare, board[square], board[newSquare]));
                 }
                 break;  // Stop if we hit a piece
             }
@@ -53,12 +53,12 @@ void Position::generateRookMoves(int square, vector<Move>& moves) {
         while (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] == Piece::EMPTY) {
-                moves.push_back(Move::quiet(square, newSquare));
+                moves.push_back(Move::quiet(square, newSquare, board[square]));
             } else {
                 if (getPieceColor(board[newSquare]) !=
                     getPieceColor(board[square])) {
-                    moves.push_back(
-                        Move::capture(square, newSquare, board[newSquare]));
+                    moves.push_back(Move::capture(
+                        square, newSquare, board[square], board[newSquare]));
                 }
                 break;  // Stop if we hit a piece
             }
@@ -81,11 +81,11 @@ void Position::generateKingMoves(int square, vector<Move>& moves) {
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
             if (board[newSquare] == Piece::EMPTY) {
-                moves.push_back(Move::quiet(square, newSquare));
+                moves.push_back(Move::quiet(square, newSquare, board[square]));
             } else if (getPieceColor(board[newSquare]) !=
                        getPieceColor(board[square])) {
-                moves.push_back(
-                    Move::capture(square, newSquare, board[newSquare]));
+                moves.push_back(Move::capture(square, newSquare, board[square],
+                                              board[newSquare]));
             }
         }
     }
@@ -100,20 +100,21 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
         if (isInsideBoard(r - 1, c) && board[(r - 1) * 8 + c] == Piece::EMPTY) {
             int newSq = (r - 1) * 8 + c;
             if (r == 1) {
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::WHITE_QUEEN));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::WHITE_ROOK));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::WHITE_BISHOP));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::WHITE_KNIGHT));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::WHITE_QUEEN));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::WHITE_ROOK));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::WHITE_BISHOP));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::WHITE_KNIGHT));
             } else {
-                moves.push_back(Move::quiet(square, newSq));
+                moves.push_back(Move::quiet(square, newSq, piece));
             }
             // Double move from starting position
             if (r == 6 && board[(r - 2) * 8 + c] == Piece::EMPTY) {
-                moves.push_back(Move::doublePush(square, (r - 2) * 8 + c));
+                moves.push_back(
+                    Move::doublePush(square, (r - 2) * 8 + c, piece));
             }
         }
 
@@ -123,15 +124,16 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
             int newSq = (r - 1) * 8 + (c - 1);
             if (r == 1) {
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_QUEEN, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_QUEEN, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_ROOK, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_ROOK, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_BISHOP, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_BISHOP, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_KNIGHT, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_KNIGHT, board[newSq]));
             } else {
-                moves.push_back(Move::capture(square, newSq, board[newSq]));
+                moves.push_back(
+                    Move::capture(square, newSq, piece, board[newSq]));
             }
         }
         if (isInsideBoard(r - 1, c + 1) &&
@@ -139,15 +141,16 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
             int newSq = (r - 1) * 8 + (c + 1);
             if (r == 1) {
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_QUEEN, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_QUEEN, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_ROOK, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_ROOK, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_BISHOP, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_BISHOP, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::WHITE_KNIGHT, board[newSq]));
+                    square, newSq, piece, Piece::WHITE_KNIGHT, board[newSq]));
             } else {
-                moves.push_back(Move::capture(square, newSq, board[newSq]));
+                moves.push_back(
+                    Move::capture(square, newSq, piece, board[newSq]));
             }
         }
     } else {
@@ -155,20 +158,21 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
         if (isInsideBoard(r + 1, c) && board[(r + 1) * 8 + c] == Piece::EMPTY) {
             int newSq = (r + 1) * 8 + c;
             if (r == 6) {
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::BLACK_QUEEN));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::BLACK_ROOK));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::BLACK_BISHOP));
-                moves.push_back(
-                    Move::quietPromotion(square, newSq, Piece::BLACK_KNIGHT));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::BLACK_QUEEN));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::BLACK_ROOK));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::BLACK_BISHOP));
+                moves.push_back(Move::quietPromotion(square, newSq, piece,
+                                                     Piece::BLACK_KNIGHT));
             } else {
-                moves.push_back(Move::quiet(square, newSq));
+                moves.push_back(Move::quiet(square, newSq, piece));
             }
             // Double move from starting position
             if (r == 1 && board[(r + 2) * 8 + c] == Piece::EMPTY) {
-                moves.push_back(Move::doublePush(square, (r + 2) * 8 + c));
+                moves.push_back(
+                    Move::doublePush(square, (r + 2) * 8 + c, piece));
             }
         }
 
@@ -178,15 +182,16 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
             int newSq = (r + 1) * 8 + (c - 1);
             if (r == 6) {
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_QUEEN, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_QUEEN, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_ROOK, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_ROOK, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_BISHOP, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_BISHOP, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_KNIGHT, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_KNIGHT, board[newSq]));
             } else {
-                moves.push_back(Move::capture(square, newSq, board[newSq]));
+                moves.push_back(
+                    Move::capture(square, newSq, piece, board[newSq]));
             }
         }
         if (isInsideBoard(r + 1, c + 1) &&
@@ -194,15 +199,16 @@ void Position::generatePawnMoves(int square, vector<Move>& moves) {
             int newSq = (r + 1) * 8 + (c + 1);
             if (r == 6) {
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_QUEEN, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_QUEEN, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_ROOK, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_ROOK, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_BISHOP, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_BISHOP, board[newSq]));
                 moves.push_back(Move::capturePromotion(
-                    square, newSq, Piece::BLACK_KNIGHT, board[newSq]));
+                    square, newSq, piece, Piece::BLACK_KNIGHT, board[newSq]));
             } else {
-                moves.push_back(Move::capture(square, newSq, board[newSq]));
+                moves.push_back(
+                    Move::capture(square, newSq, piece, board[newSq]));
             }
         }
     }
@@ -213,25 +219,29 @@ void Position::generateEnPassantMoves(vector<Move>& moves) {
 
     int r = enPassantSquare / 8, c = enPassantSquare % 8;
     if (colorToMove == Color::WHITE) {
-        if (isInsideBoard(r, c - 1) &&
-            board[r * 8 + (c - 1)] == Piece::WHITE_PAWN) {
-            moves.push_back(Move::enPassant(r * 8 + (c - 1), (r - 1) * 8 + c,
+        if (isInsideBoard(r + 1, c - 1) &&
+            board[(r + 1) * 8 + (c - 1)] == Piece::WHITE_PAWN) {
+            moves.push_back(Move::enPassant((r + 1) * 8 + (c - 1),
+                                            enPassantSquare, Piece::WHITE_PAWN,
                                             Piece::BLACK_PAWN));
         }
-        if (isInsideBoard(r, c + 1) &&
-            board[r * 8 + (c + 1)] == Piece::WHITE_PAWN) {
-            moves.push_back(Move::enPassant(r * 8 + (c + 1), (r - 1) * 8 + c,
+        if (isInsideBoard(r + 1, c + 1) &&
+            board[(r + 1) * 8 + (c + 1)] == Piece::WHITE_PAWN) {
+            moves.push_back(Move::enPassant((r + 1) * 8 + (c + 1),
+                                            enPassantSquare, Piece::WHITE_PAWN,
                                             Piece::BLACK_PAWN));
         }
     } else {
-        if (isInsideBoard(r, c - 1) &&
-            board[r * 8 + (c - 1)] == Piece::BLACK_PAWN) {
-            moves.push_back(Move::enPassant(r * 8 + (c - 1), (r + 1) * 8 + c,
+        if (isInsideBoard(r - 1, c - 1) &&
+            board[(r - 1) * 8 + (c - 1)] == Piece::BLACK_PAWN) {
+            moves.push_back(Move::enPassant((r - 1) * 8 + (c - 1),
+                                            enPassantSquare, Piece::BLACK_PAWN,
                                             Piece::WHITE_PAWN));
         }
-        if (isInsideBoard(r, c + 1) &&
-            board[r * 8 + (c + 1)] == Piece::BLACK_PAWN) {
-            moves.push_back(Move::enPassant(r * 8 + (c + 1), (r + 1) * 8 + c,
+        if (isInsideBoard(r - 1, c + 1) &&
+            board[(r - 1) * 8 + (c + 1)] == Piece::BLACK_PAWN) {
+            moves.push_back(Move::enPassant((r - 1) * 8 + (c + 1),
+                                            enPassantSquare, Piece::BLACK_PAWN,
                                             Piece::WHITE_PAWN));
         }
     }

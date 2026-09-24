@@ -198,7 +198,7 @@ void FlopFishv1::moveOrdering(std::vector<Move>& moves, const Position& pos) {
     for (int j = 0; j < n; j++) {
         if (moves[j].type == MoveType::CAPTURE ||
             moves[j].type == MoveType::CAPTURE_PROMOTION ||
-            moves[j].type == MoveType::EN_PASSANT) {
+            moves[j].type == MoveType::EN_PASSANT_CAPTURE) {
             swap(moves[i], moves[j]);
             i++;
         }

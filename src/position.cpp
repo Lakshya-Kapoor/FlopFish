@@ -4,11 +4,19 @@
 #include <sstream>
 #include <vector>
 
+#include "zobrist.hpp"
+
 using namespace std;
 
-Position::Position() { initPos(); }
+Position::Position() {
+    initPos();
+    generateZobristHash();
+}
 
-Position::Position(const string& fen) { parseFENPos(fen); }
+Position::Position(const string& fen) {
+    parseFENPos(fen);
+    generateZobristHash();
+}
 
 Piece Position::getPieceAt(int square) const { return board[square]; }
 
@@ -140,6 +148,29 @@ void Position::parseFENPos(const string& fen) {
     fullmoveNumber = stoi(fullmovePart);
 }
 
+void Position::generateZobristHash() {
+    zobristHash = 0;
+
+    for (int square = 0; square < 64; square++) {
+        Piece piece = board[square];
+        if (piece != Piece::EMPTY) {
+            int pieceIndex = static_cast<int>(piece) - 1;
+            zobristHash ^= Zobrist::getPieceSquareKey(piece, square);
+        }
+    }
+
+    if (colorToMove == Color::WHITE) {
+        zobristHash ^= Zobrist::getColorToMoveKey();
+    }
+
+    zobristHash ^= Zobrist::getCastlingRightsKey(castlingRights);
+
+    if (enPassantSquare != -1) {
+        int file = enPassantSquare % 8;
+        zobristHash ^= Zobrist::getEnPassantFileKey(file);
+    }
+}
+
 void Position::print() const {
     for (int i = 0; i < 8; i++) {
         cout << 8 - i << " ";
@@ -183,14 +214,13 @@ bool Position::isInsideBoard(int r, int c) const {
 
 void Position::makeMove(const Move& move) {
     Piece movingPiece = Piece::EMPTY;
-    if (move.type != MoveType::CASTLING) {
-        movingPiece = board[move.fromSquare];
-    }
+    if (move.type != MoveType::CASTLING) movingPiece = move.movedPiece;
+
     bool isPawnMove =
         movingPiece == Piece::WHITE_PAWN || movingPiece == Piece::BLACK_PAWN;
     bool isCapture = move.type == MoveType::CAPTURE ||
                      move.type == MoveType::CAPTURE_PROMOTION ||
-                     move.type == MoveType::EN_PASSANT;
+                     move.type == MoveType::EN_PASSANT_CAPTURE;
 
     if (isPawnMove || isCapture) {
         halfmoveClock = 0;
@@ -203,37 +233,51 @@ void Position::makeMove(const Move& move) {
     switch (move.type) {
         case MoveType::QUIET:
             removeCastlingRights(move);
-            board[move.toSquare] = board[move.fromSquare];
+            board[move.toSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
             break;
 
         case MoveType::DOUBLE_PUSH:
-            enPassantSquare = move.toSquare;
-            board[move.toSquare] = board[move.fromSquare];
+            if (colorToMove == Color::WHITE)
+                enPassantSquare = move.toSquare + 8;
+            else
+                enPassantSquare = move.toSquare - 8;
+
+            board[move.toSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
             break;
 
         case MoveType::CAPTURE:
             removeCastlingRights(move);
-            board[move.toSquare] = board[move.fromSquare];
+            board[move.toSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
             break;
 
         case MoveType::QUIET_PROMOTION:
             board[move.toSquare] = move.promotionPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
             break;
 
         case MoveType::CAPTURE_PROMOTION:
             removeCastlingRights(move);
             board[move.toSquare] = move.promotionPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
             break;
 
-        case MoveType::EN_PASSANT:
-            board[enPassantSquare] = Piece::EMPTY;
-            board[move.toSquare] = board[move.fromSquare];
+        case MoveType::EN_PASSANT_CAPTURE:
+            board[enPassantSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;
+
+            if (colorToMove == Color::WHITE)
+                board[enPassantSquare + 8] = Piece::EMPTY;
+            else
+                board[enPassantSquare - 8] = Piece::EMPTY;
+
             break;
 
         case MoveType::CASTLING:
@@ -286,6 +330,7 @@ void Position::makeMove(const Move& move, StateInfo& saveState) {
     saveState.enPassantSquare = enPassantSquare;
     saveState.halfmoveClock = halfmoveClock;
     saveState.fullmoveNumber = fullmoveNumber;
+    saveState.zobristHash = zobristHash;
 
     makeMove(move);
 }
@@ -295,41 +340,33 @@ void Position::undoMove(const Move& move, const StateInfo& savedState) {
     enPassantSquare = savedState.enPassantSquare;
     halfmoveClock = savedState.halfmoveClock;
     fullmoveNumber = savedState.fullmoveNumber;
+    zobristHash = savedState.zobristHash;
+    colorToMove = -colorToMove;
 
     switch (move.type) {
         case MoveType::QUIET:
-            board[move.fromSquare] = board[move.toSquare];
-            board[move.toSquare] = Piece::EMPTY;
-            break;
-
         case MoveType::DOUBLE_PUSH:
-            board[move.fromSquare] = board[move.toSquare];
+        case MoveType::QUIET_PROMOTION:
+            board[move.fromSquare] = move.movedPiece;
             board[move.toSquare] = Piece::EMPTY;
+
             break;
 
         case MoveType::CAPTURE:
-            board[move.fromSquare] = board[move.toSquare];
-            board[move.toSquare] = move.capturedPiece;
-            break;
-
-        case MoveType::QUIET_PROMOTION:
-            board[move.fromSquare] = isWhitePiece(move.promotionPiece)
-                                         ? Piece::WHITE_PAWN
-                                         : Piece::BLACK_PAWN;
-            board[move.toSquare] = Piece::EMPTY;
-            break;
-
         case MoveType::CAPTURE_PROMOTION:
-            board[move.fromSquare] = isWhitePiece(move.promotionPiece)
-                                         ? Piece::WHITE_PAWN
-                                         : Piece::BLACK_PAWN;
+            board[move.fromSquare] = move.movedPiece;
             board[move.toSquare] = move.capturedPiece;
+
             break;
 
-        case MoveType::EN_PASSANT:
-            board[move.fromSquare] = board[move.toSquare];
+        case MoveType::EN_PASSANT_CAPTURE:
+            board[move.fromSquare] = move.movedPiece;
             board[move.toSquare] = Piece::EMPTY;
-            board[savedState.enPassantSquare] = move.capturedPiece;
+            if (colorToMove == Color::WHITE)
+                board[savedState.enPassantSquare + 8] = move.capturedPiece;
+            else
+                board[savedState.enPassantSquare - 8] = move.capturedPiece;
+
             break;
 
         case MoveType::CASTLING:
@@ -370,8 +407,6 @@ void Position::undoMove(const Move& move, const StateInfo& savedState) {
         default:
             break;
     }
-
-    colorToMove = -colorToMove;
 }
 
 bool Position::isSquareAttacked(int square, Color byColor) const {

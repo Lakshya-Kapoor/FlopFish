@@ -21,6 +21,7 @@ struct StateInfo {
     int enPassantSquare;
     int halfmoveClock;
     int fullmoveNumber;
+    U64 zobristHash;
 };
 
 enum class PositionState { ONGOING, CHECKMATE, STALEMATE, DRAW };
@@ -33,9 +34,12 @@ class Position {
     int enPassantSquare;
     int halfmoveClock;
     int fullmoveNumber;
+    U64 zobristHash;
 
     void initPos();
     void parseFENPos(const std::string& fen);
+
+    void generateZobristHash();
 
     void generateKnightMoves(int square, std::vector<Move>& moves);
     void generateBishopMoves(int square, std::vector<Move>& moves);

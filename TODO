@@ -1,0 +1,5 @@
+1. Optimize the legal move generation by modifying the check detection thing
+2. 3 move repetition detection
+3. remove the usage of vector from everywhere
+4. look into transposition tables, zobrist hashing
+5. develop a testing framework to pit different versions of the engine against each other
