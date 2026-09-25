@@ -15,5 +15,5 @@ class Zobrist {
     static U64 getPieceSquareKey(Piece piece, int square);
     static U64 getColorToMoveKey();
     static U64 getCastlingRightsKey(CastlingRights rights);
-    static U64 getEnPassantFileKey(int file);
+    static U64 getEnPassantFileKey(int enPassantSquare);
 };

@@ -66,8 +66,6 @@ class Position {
     int getFullmoveNumber() const;
     PositionState getPositionState();
 
-    void setColorToMove(Color color) { colorToMove = color; }
-
     void print() const;
     std::string toFEN() const;
 

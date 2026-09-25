@@ -34,7 +34,6 @@ class FlopFishv1 : public Player {
 
     int evaluate(Position& pos);
     int evaluateMaterial(Position& pos);
-    int evaluateMobility(Position& pos);
     int evaluatePieceSquareTables(Position& pos);
 
     int negamax(Position& pos, int depth);

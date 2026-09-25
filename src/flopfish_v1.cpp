@@ -66,27 +66,6 @@ int FlopFishv1::evaluateMaterial(Position& pos) {
     return score;
 }
 
-int FlopFishv1::evaluateMobility(Position& pos) {
-    int score = 0;
-
-    vector<Move> whiteMoves;
-    vector<Move> blackMoves;
-
-    if (pos.getColorToMove() == Color::WHITE) {
-        whiteMoves = pos.generatePseudoLegalMoves();
-        pos.setColorToMove(Color::BLACK);
-        blackMoves = pos.generatePseudoLegalMoves();
-        pos.setColorToMove(Color::WHITE);
-    } else {
-        blackMoves = pos.generatePseudoLegalMoves();
-        pos.setColorToMove(Color::WHITE);
-        whiteMoves = pos.generatePseudoLegalMoves();
-        pos.setColorToMove(Color::BLACK);
-    }
-
-    return whiteMoves.size() - blackMoves.size();
-}
-
 int FlopFishv1::evaluatePieceSquareTables(Position& pos) {
     int score = 0;
     for (int square = 0; square < 64; square++) {
@@ -129,7 +108,6 @@ int FlopFishv1::evaluate(Position& pos) {
 
     int score = 0;
     score += evaluateMaterial(pos);
-    // score += evaluateMobility(pos);
     score += evaluatePieceSquareTables(pos);
 
     return (pos.getColorToMove() == Color::WHITE) ? score : -score;

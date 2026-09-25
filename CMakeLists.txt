@@ -11,6 +11,7 @@ add_compile_options(-O3)
 add_library(flopfish_engine
     src/move.cpp
     src/move_generation.cpp
+    src/move_application.cpp
     src/position.cpp
     src/utils.cpp
     src/zobrist.cpp

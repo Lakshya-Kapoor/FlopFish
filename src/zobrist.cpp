@@ -3,6 +3,14 @@
 #include <random>
 using namespace std;
 
+namespace {
+struct ZobristInitializer {
+    ZobristInitializer() { Zobrist::initZobristKeys(); }
+};
+
+const ZobristInitializer zobristInitializer;
+}  // namespace
+
 U64 Zobrist::pieceSquareKeys[12][64];
 U64 Zobrist::colorToMoveKey;
 U64 Zobrist::castlingRightsKeys[16];
@@ -40,4 +48,7 @@ U64 Zobrist::getCastlingRightsKey(CastlingRights rights) {
     return castlingRightsKeys[rightsIndex];
 }
 
-U64 Zobrist::getEnPassantFileKey(int file) { return enPassantFileKeys[file]; }
+U64 Zobrist::getEnPassantFileKey(int enPassantSquare) {
+    int file = enPassantSquare % 8;
+    return enPassantFileKeys[file];
+}
