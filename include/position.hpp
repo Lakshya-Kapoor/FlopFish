@@ -39,8 +39,7 @@ class Position {
     void initPos();
     void parseFENPos(const std::string& fen);
 
-    void generateZobristHash();
-
+    U64 generateZobristHash();
     void generateKnightMoves(int square, std::vector<Move>& moves);
     void generateBishopMoves(int square, std::vector<Move>& moves);
     void generateRookMoves(int square, std::vector<Move>& moves);
@@ -65,6 +64,7 @@ class Position {
     int getHalfmoveClock() const;
     int getFullmoveNumber() const;
     PositionState getPositionState();
+    U64 getZobristHash() const;
 
     void print() const;
     std::string toFEN() const;

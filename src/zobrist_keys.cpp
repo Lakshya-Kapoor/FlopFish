@@ -1,22 +1,16 @@
-#include "zobrist.hpp"
+#include "zobrist_keys.hpp"
 
 #include <random>
 using namespace std;
 
-namespace {
-struct ZobristInitializer {
-    ZobristInitializer() { Zobrist::initZobristKeys(); }
-};
+ZobristKeys* ZobristKeys::getKeys() {
+    if (_keys == nullptr) {
+        _keys = new ZobristKeys();
+    }
+    return _keys;
+}
 
-const ZobristInitializer zobristInitializer;
-}  // namespace
-
-U64 Zobrist::pieceSquareKeys[12][64];
-U64 Zobrist::colorToMoveKey;
-U64 Zobrist::castlingRightsKeys[16];
-U64 Zobrist::enPassantFileKeys[8];
-
-void Zobrist::initZobristKeys() {
+ZobristKeys::ZobristKeys() {
     mt19937_64 rng(42);
 
     for (int piece = 0; piece < 12; piece++) {
@@ -36,19 +30,19 @@ void Zobrist::initZobristKeys() {
     }
 }
 
-U64 Zobrist::getPieceSquareKey(Piece piece, int square) {
+U64 ZobristKeys::getPieceSquareKey(Piece piece, int square) {
     int pieceIndex = static_cast<int>(piece) - 1;
     return pieceSquareKeys[pieceIndex][square];
 }
 
-U64 Zobrist::getColorToMoveKey() { return colorToMoveKey; }
+U64 ZobristKeys::getColorToMoveKey() { return colorToMoveKey; }
 
-U64 Zobrist::getCastlingRightsKey(CastlingRights rights) {
+U64 ZobristKeys::getCastlingRightsKey(CastlingRights rights) {
     int rightsIndex = static_cast<int>(rights);
     return castlingRightsKeys[rightsIndex];
 }
 
-U64 Zobrist::getEnPassantFileKey(int enPassantSquare) {
+U64 ZobristKeys::getEnPassantFileKey(int enPassantSquare) {
     int file = enPassantSquare % 8;
     return enPassantFileKeys[file];
 }

@@ -14,7 +14,7 @@ add_library(flopfish_engine
     src/move_application.cpp
     src/position.cpp
     src/utils.cpp
-    src/zobrist.cpp
+    src/zobrist_keys.cpp
     src/flopfish_v1.cpp
     src/flopfish_v2.cpp
     src/flopfish_v3.cpp

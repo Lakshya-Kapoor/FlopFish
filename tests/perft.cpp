@@ -13,35 +13,35 @@ struct PerftCase {
     vector<pair<int, U64>> expectedNodes;
 };
 
-U64 perft(Position& position, int depth) {
+U64 perft(Position& pos, int depth) {
     if (depth == 0) return 1;
 
     U64 nodes = 0;
-    vector<Move> moves = position.generateLegalMoves();
+    vector<Move> moves = pos.generateLegalMoves();
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        position.makeMove(move, savedState);
-        nodes += perft(position, depth - 1);
-        position.undoMove(move, savedState);
+        pos.makeMove(move, savedState);
+        nodes += perft(pos, depth - 1);
+        pos.undoMove(move, savedState);
     }
 
     return nodes;
 }
 
-U64 perftDivide(Position& position, int depth) {
+U64 perftDivide(Position& pos, int depth) {
     if (depth == 0) return 1;
 
     U64 totalNodes = 0;
 
-    vector<Move> moves = position.generateLegalMoves();
+    vector<Move> moves = pos.generateLegalMoves();
     for (const Move& move : moves) {
         StateInfo savedState;
-        position.makeMove(move, savedState);
+        pos.makeMove(move, savedState);
 
-        U64 nodes = perft(position, depth - 1);
+        U64 nodes = perft(pos, depth - 1);
 
-        position.undoMove(move, savedState);
+        pos.undoMove(move, savedState);
 
         cout << move.toString() << ": " << nodes << "\n";
         totalNodes += nodes;
@@ -54,8 +54,8 @@ bool runPerftCase(PerftCase& testCase) {
     bool passed = true;
 
     for (const auto& [depth, expected] : testCase.expectedNodes) {
-        Position position(testCase.fen);
-        U64 actual = perft(position, depth);
+        Position pos(testCase.fen);
+        U64 actual = perft(pos, depth);
 
         if (actual != expected) {
             cerr << "FAIL depth " << depth << ": expected " << expected

@@ -4,18 +4,18 @@
 #include <sstream>
 #include <vector>
 
-#include "zobrist.hpp"
+#include "zobrist_keys.hpp"
 
 using namespace std;
 
 Position::Position() {
     initPos();
-    generateZobristHash();
+    zobristHash = generateZobristHash();
 }
 
 Position::Position(const string& fen) {
     parseFENPos(fen);
-    generateZobristHash();
+    zobristHash = generateZobristHash();
 }
 
 Piece Position::getPieceAt(int square) const { return board[square]; }
@@ -47,6 +47,8 @@ PositionState Position::getPositionState() {
 
     return PositionState::ONGOING;
 }
+
+U64 Position::getZobristHash() const { return zobristHash; }
 
 void Position::initPos() {
     board[0] = board[7] = Piece::BLACK_ROOK;
@@ -148,28 +150,31 @@ void Position::parseFENPos(const string& fen) {
     fullmoveNumber = stoi(fullmovePart);
 }
 
-void Position::generateZobristHash() {
-    zobristHash = 0;
+U64 Position::generateZobristHash() {
+    ZobristKeys* zobristKeys = ZobristKeys::getKeys();
+    U64 hash = 0;
 
     for (int square = 0; square < 64; square++) {
         Piece piece = board[square];
         if (piece != Piece::EMPTY) {
             int pieceIndex = static_cast<int>(piece) - 1;
-            zobristHash ^= Zobrist::getPieceSquareKey(piece, square);
+            hash ^= zobristKeys->getPieceSquareKey(piece, square);
         }
     }
 
     // Add color to move key only for white
     if (colorToMove == Color::WHITE) {
-        zobristHash ^= Zobrist::getColorToMoveKey();
+        hash ^= zobristKeys->getColorToMoveKey();
     }
 
-    zobristHash ^= Zobrist::getCastlingRightsKey(castlingRights);
+    hash ^= zobristKeys->getCastlingRightsKey(castlingRights);
 
     if (enPassantSquare != -1) {
         int file = enPassantSquare % 8;
-        zobristHash ^= Zobrist::getEnPassantFileKey(file);
+        hash ^= zobristKeys->getEnPassantFileKey(file);
     }
+
+    return hash;
 }
 
 void Position::print() const {
