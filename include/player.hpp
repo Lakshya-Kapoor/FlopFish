@@ -4,6 +4,7 @@
 
 #include "move.hpp"
 #include "position.hpp"
+#include "transposition_table.hpp"
 
 struct Result {
     Move move;
@@ -25,6 +26,8 @@ struct Config {
     int depth;
     bool reorderMoves = true;
     bool reorderCaptures = true;
+    bool reorderTTMove = true;
+    size_t TTSize = 1 << 20;
 };
 
 class FlopFishv1 : public Player {
@@ -37,12 +40,11 @@ class FlopFishv1 : public Player {
     int evaluatePieceSquareTables(Position& pos);
 
     int negamax(Position& pos, int depth);
-    int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta);
+    virtual int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta);
 
     void moveOrdering(std::vector<Move>& moves, const Position& pos);
 
    public:
-    FlopFishv1();
     FlopFishv1(Config config);
 
     Result getMove(Position pos) override;
@@ -50,7 +52,6 @@ class FlopFishv1 : public Player {
 
 class FlopFishv2 : public FlopFishv1 {
    public:
-    FlopFishv2();
     FlopFishv2(Config config);
 
     Result getMove(Position pos) override;
@@ -67,8 +68,19 @@ class FlopFishv3 : public FlopFishv1 {
                                  int ply, bool usePV);
 
    public:
-    FlopFishv3();
     FlopFishv3(Config config);
+
+    Result getMove(Position pos) override;
+};
+
+class FlopFishv4 : public FlopFishv1 {
+   protected:
+    TranspositionTable tt;
+    int negamaxAlphaBeta(Position& pos, int depth, int alpha,
+                         int beta) override;
+
+   public:
+    FlopFishv4(Config config);
 
     Result getMove(Position pos) override;
 };

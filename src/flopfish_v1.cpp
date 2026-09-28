@@ -50,7 +50,6 @@ const int kingTable[64] = {
     -20, -10, -20, -20, -20, -20, -20, -20, -10, 20,  20,  0,   0,
     0,   0,   20,  20,  20,  30,  10,  0,   0,   10,  30,  20};
 
-FlopFishv1::FlopFishv1() {}
 FlopFishv1::FlopFishv1(Config config) : config(config) {}
 
 int FlopFishv1::evaluateMaterial(Position& pos) {

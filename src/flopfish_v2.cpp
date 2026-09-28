@@ -4,7 +4,6 @@
 #include "player.hpp"
 using namespace std;
 
-FlopFishv2::FlopFishv2() {}
 FlopFishv2::FlopFishv2(Config config) : FlopFishv1(config) {}
 
 Result FlopFishv2::getMove(Position pos) {
@@ -12,16 +11,13 @@ Result FlopFishv2::getMove(Position pos) {
 
     Move bestMove;
 
-    // Keeping generation to the outside of the loop avoids generating moves
-    // multiple times and also allows us to keep previous best moves from
-    // shallower depths to the front
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
-
     for (int depth = 1; depth <= config.depth; depth++) {
         int bestScore = -INF;
         int alpha = -INF;
         int beta = INF;
+
+        vector<Move> moves = pos.generateLegalMoves();
+        if (config.reorderMoves) moveOrdering(moves, pos);
 
         if (depth > 1) {
             int idx = 0;

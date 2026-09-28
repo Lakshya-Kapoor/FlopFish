@@ -15,9 +15,11 @@ add_library(flopfish_engine
     src/position.cpp
     src/utils.cpp
     src/zobrist_keys.cpp
+    src/transposition_table.cpp
     src/flopfish_v1.cpp
     src/flopfish_v2.cpp
     src/flopfish_v3.cpp
+    src/flopfish_v4.cpp
 )
 
 target_include_directories(flopfish_engine PUBLIC include)
@@ -27,3 +29,9 @@ target_link_libraries(flopfish PRIVATE flopfish_engine)
 
 add_executable(perft tests/perft.cpp)
 target_link_libraries(perft PRIVATE flopfish_engine)
+
+enable_testing()
+
+add_executable(zobrist_test tests/zobrist_test.cpp)
+target_link_libraries(zobrist_test PRIVATE flopfish_engine)
+add_test(NAME zobrist_test COMMAND zobrist_test)

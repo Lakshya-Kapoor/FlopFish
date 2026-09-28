@@ -1,3 +1,5 @@
+# Performance metrics
+
 ## Effect of move ordering on performance
 
 Move ordering significantly improves pruning. The following table shows the number of nodes searched for different depths with no move ordering, partial move ordering (captures are moved to the front of the move list), and full move ordering (captures are moved to the front of the move list and captures are sorted using MVV-LVA).
@@ -39,12 +41,12 @@ v3: iterative deepening with complete PV move reordering along with capture reor
 
 1. Initial: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-   | version | v1             | v2 (total nodes) | v2 (iteration nodes) | v3 (iteration nodes) |
-   | ------- | -------------- | ---------------- | -------------------- | -------------------- |
-   | 5       | 49949 nodes    | 35831 nodes      | 32773 nodes          | 32660 nodes          |
-   | 6       | 493225 nodes   | 517958 nodes     | 333331 nodes         | 330645 nodes         |
-   | 7       | 3171611 nodes  | 2315754 nodes    | 1593975 nodes        | 1616203 nodes        |
-   | 8       | 19106141 nodes | 16016148 nodes   | 14616725 nodes       | 14169530 nodes       |
+   | depth | v1             | v2 (total nodes) | v2 (iteration nodes) | v3 (iteration nodes) |
+   | ----- | -------------- | ---------------- | -------------------- | -------------------- |
+   | 5     | 49949 nodes    | 35831 nodes      | 32773 nodes          | 32660 nodes          |
+   | 6     | 493225 nodes   | 517958 nodes     | 333331 nodes         | 330645 nodes         |
+   | 7     | 3171611 nodes  | 2315754 nodes    | 1593975 nodes        | 1616203 nodes        |
+   | 8     | 19106141 nodes | 16016148 nodes   | 14616725 nodes       | 14169530 nodes       |
 
 2. Mid game: "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
 
@@ -62,3 +64,50 @@ v3: iterative deepening with complete PV move reordering along with capture reor
    | 6     | 25500 nodes  | 45820 nodes      | 25500 nodes          | 24753 nodes          |
    | 7     | 198815 nodes | 244635 nodes     | 198815 nodes         | 199091 nodes         |
    | 8     | 553905 nodes | 798540 nodes     | 553905 nodes         | 530741 nodes         |
+
+## Transposition table reordering
+
+1. Initial: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+   | depth | v2             | v4 (no tt reordering) | v4 (tt reordering) |
+   | ----- | -------------- | --------------------- | ------------------ |
+   | 5     | 35831 nodes    | 46867 nodes           | 44768 nodes        |
+   | 6     | 517958 nodes   | 384084 nodes          | 343763 nodes       |
+   | 7     | 2315754 nodes  | 2362624 nodes         | 2039545 nodes      |
+   | 8     | 16016148 nodes | 11164701 nodes        | 9268030 nodes      |
+
+2. Mid game: "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
+
+   | depth | v2 (total nodes) | v4 (no tt reordering) | v4 (tt reordering) |
+   | ----- | ---------------- | --------------------- | ------------------ |
+   | 5     | 281778 nodes     | 265695 nodes          | 227618 nodes       |
+   | 6     | 1508619 nodes    | 1358010 nodes         | 1177074 nodes      |
+   | 7     | 14271927 nodes   | 10209706 nodes        | 8400171 nodes      |
+
+3. End game: "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1"
+
+   | depth | v2 (total nodes) | v4 (no tt reordering) | v4 (tt reordering) |
+   | ----- | ---------------- | --------------------- | ------------------ |
+   | 5     | 20320 nodes      | 15906 nodes           | 12176 nodes        |
+   | 6     | 45820 nodes      | 33106 nodes           | 21310 nodes        |
+   | 7     | 244635 nodes     | 138463 nodes          | 72372 nodes        |
+   | 8     | 798540 nodes     | 411991 nodes          | 288602 nodes       |
+
+## Transposition table size
+
+1. Initial: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+   | depth | 2^18 entries   | 2^20 entries  | 2^22 entries  |
+   | ----- | -------------- | ------------- | ------------- |
+   | 5     | 44715 nodes    | 44768 nodes   | 44724 nodes   |
+   | 6     | 345876 nodes   | 343763 nodes  | 341927 nodes  |
+   | 7     | 2129870 nodes  | 2039545 nodes | 1991990 nodes |
+   | 8     | 12127271 nodes | 9268030 nodes | 7444991 nodes |
+
+2. Mid game: "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
+
+   | depth | 2^18 entries   | 2^20 entries  | 2^22 entries  |
+   | ----- | -------------- | ------------- | ------------- |
+   | 5     | 227820 nodes   | 227618 nodes  | 227584 nodes  |
+   | 6     | 1214638 nodes  | 1177074 nodes | 1163268 nodes |
+   | 7     | 10239336 nodes | 8400171 nodes | 7321954 nodes |
