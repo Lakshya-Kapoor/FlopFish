@@ -106,9 +106,5 @@ int main() {
         if (!runPerftCase(testCases[index])) allPassed = false;
     }
 
-    // Position position(testCases[3].fen);
-    // position.print();
-    // cout << perftDivide(position, 1) << endl;
-
     return allPassed ? 0 : 1;
 }

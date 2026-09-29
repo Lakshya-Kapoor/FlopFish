@@ -8,6 +8,44 @@
 
 using namespace std;
 
+LegalityInfo::LegalityInfo(int kingSquare, bool inCheck, Pin pinnedSquare[],
+                           bool evasionSquares[]) {
+    this->kingSquare = kingSquare;
+    this->inCheck = inCheck;
+    for (int i = 0; i < 64; i++) {
+        this->pinnedSquare[i] = pinnedSquare[i];
+        this->evasionSquares[i] = evasionSquares[i];
+    }
+}
+
+bool LegalityInfo::legalityRespected(int fromSquare, int toSquare) const {
+    if (pinnedSquare[fromSquare].isPinned) {
+        int fromR = fromSquare / 8, fromC = fromSquare % 8;
+        int toR = toSquare / 8, toC = toSquare % 8;
+
+        int dr = pinnedSquare[fromSquare].dr;
+        int dc = pinnedSquare[fromSquare].dc;
+
+        if (dc == 0) {
+            if (fromC != toC) return false;
+        } else if (dr == 0) {
+            if (fromR != toR) return false;
+        } else {
+            if ((fromR - toR) * dc != (fromC - toC) * dr) {
+                return false;
+            }
+        }
+    }
+
+    if (inCheck) {
+        if (!evasionSquares[toSquare]) {
+            return false;  // Move does not evade the check
+        }
+    }
+
+    return true;
+}
+
 Position::Position() {
     initPos();
     zobristHash = generateZobristHash();

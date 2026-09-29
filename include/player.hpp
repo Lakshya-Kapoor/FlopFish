@@ -27,7 +27,7 @@ struct Config {
     bool reorderMoves = true;
     bool reorderCaptures = true;
     bool reorderTTMove = true;
-    size_t TTSize = 1 << 20;
+    size_t TTSize = 1 << 26;
 };
 
 class FlopFishv1 : public Player {

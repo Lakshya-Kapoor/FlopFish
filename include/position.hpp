@@ -16,6 +16,30 @@ const int rookDir[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 const int kingDir[8][2] = {{1, 0}, {-1, 0}, {0, 1},  {0, -1},
                            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
+struct Pin {
+    bool isPinned = false;
+    int dr;
+    int dc;
+};
+
+class LegalityInfo {
+   private:
+    int kingSquare;
+    bool inCheck;
+    Pin pinnedSquare[64];
+    bool evasionSquares[64];
+
+   public:
+    LegalityInfo(int kingSquare, bool inCheck, Pin pinnedSquare[],
+                 bool evasionSquares[]);
+
+    bool legalityRespected(int fromSquare, int toSquare) const;
+
+    int getKingSquare() const;
+    bool isInCheck() const;
+    bool isPinned(int square) const;
+};
+
 struct StateInfo {
     CastlingRights castlingRights;
     int enPassantSquare;
@@ -39,14 +63,20 @@ class Position {
     void initPos();
     void parseFENPos(const std::string& fen);
 
-    void generateKnightMoves(int square, std::vector<Move>& moves);
-    void generateBishopMoves(int square, std::vector<Move>& moves);
-    void generateRookMoves(int square, std::vector<Move>& moves);
-    void generateQueenMoves(int square, std::vector<Move>& moves);
+    void generateKnightMoves(int square, std::vector<Move>& moves,
+                             const LegalityInfo& info);
+    void generateBishopMoves(int square, std::vector<Move>& moves,
+                             const LegalityInfo& info);
+    void generateRookMoves(int square, std::vector<Move>& moves,
+                           const LegalityInfo& info);
+    void generateQueenMoves(int square, std::vector<Move>& moves,
+                            const LegalityInfo& info);
     void generateKingMoves(int square, std::vector<Move>& moves);
-    void generatePawnMoves(int square, std::vector<Move>& moves);
+    void generatePawnMoves(int square, std::vector<Move>& moves,
+                           const LegalityInfo& info);
     void generateCastlingMoves(std::vector<Move>& moves);
-    void generateEnPassantMoves(std::vector<Move>& moves);
+    void generateEnPassantMoves(std::vector<Move>& moves,
+                                const LegalityInfo& info);
 
     void removeCastlingRights(const Move& move);
 
@@ -77,6 +107,5 @@ class Position {
     void makeMove(const Move& move, StateInfo& saveState);
     void undoMove(const Move& move, const StateInfo& savedState);
 
-    std::vector<Move> generatePseudoLegalMoves();
     std::vector<Move> generateLegalMoves();
 };

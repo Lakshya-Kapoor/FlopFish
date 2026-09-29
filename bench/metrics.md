@@ -111,3 +111,21 @@ v3: iterative deepening with complete PV move reordering along with capture reor
    | 5     | 227820 nodes   | 227618 nodes  | 227584 nodes  |
    | 6     | 1214638 nodes  | 1177074 nodes | 1163268 nodes |
    | 7     | 10239336 nodes | 8400171 nodes | 7321954 nodes |
+
+## Move generation efficiency
+
+1. Naive legal move generation: Seeing whether a move is legal by making the move and checking if the king is in check.
+
+   | Position | Depth | Time (s) | Nodes/s |
+   | -------- | ----- | -------- | ------- |
+   | Initial  | 8     | 21.0876  | 350519  |
+   | Mid game | 7     | 22.75    | 315051  |
+   | End game | 10    | 3.44851  | 445775  |
+
+2. Legal move generation while keeping track of pinned pieces and evasion squares.
+
+   | Position | Depth | Time (s) | Nodes/s |
+   | -------- | ----- | -------- | ------- |
+   | Initial  | 8     | 9.22925  | 819204  |
+   | Mid game | 7     | 8.62106  | 835264  |
+   | End game | 10    | 0.910092 | 824558  |
