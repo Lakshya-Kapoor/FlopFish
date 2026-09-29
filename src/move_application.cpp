@@ -30,7 +30,7 @@ void Position::makeMove(const Move& move) {
     // regardless of what move type is played the previous enPassant square is
     // going to change
     if (enPassantSquare != -1)
-        zobristHash ^= zobristKeys->getEnPassantFileKey(enPassantSquare);
+        zobristHash ^= zobristKeys->getEnPassantKey(enPassantSquare);
 
     switch (move.type) {
         case MoveType::QUIET:
@@ -59,7 +59,7 @@ void Position::makeMove(const Move& move) {
 
             // adding the en passant key to the hash for the new en passant
             // square
-            zobristHash ^= zobristKeys->getEnPassantFileKey(enPassantSquare);
+            zobristHash ^= zobristKeys->getEnPassantKey(enPassantSquare);
 
             board[move.toSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;

@@ -34,10 +34,23 @@ class LegalityInfo {
                  bool evasionSquares[]);
 
     bool legalityRespected(int fromSquare, int toSquare) const;
+};
 
-    int getKingSquare() const;
-    bool isInCheck() const;
-    bool isPinned(int square) const;
+class Position;
+
+class LegalMoveCollector {
+   public:
+    LegalMoveCollector(Position& position, const LegalityInfo& info,
+                       std::vector<Move>& moves);
+
+    void add(const Move& move);
+
+   private:
+    bool requiresBoardValidation(const Move& move) const;
+
+    Position& position;
+    const LegalityInfo& info;
+    std::vector<Move>& moves;
 };
 
 struct StateInfo {
@@ -63,20 +76,14 @@ class Position {
     void initPos();
     void parseFENPos(const std::string& fen);
 
-    void generateKnightMoves(int square, std::vector<Move>& moves,
-                             const LegalityInfo& info);
-    void generateBishopMoves(int square, std::vector<Move>& moves,
-                             const LegalityInfo& info);
-    void generateRookMoves(int square, std::vector<Move>& moves,
-                           const LegalityInfo& info);
-    void generateQueenMoves(int square, std::vector<Move>& moves,
-                            const LegalityInfo& info);
-    void generateKingMoves(int square, std::vector<Move>& moves);
-    void generatePawnMoves(int square, std::vector<Move>& moves,
-                           const LegalityInfo& info);
-    void generateCastlingMoves(std::vector<Move>& moves);
-    void generateEnPassantMoves(std::vector<Move>& moves,
-                                const LegalityInfo& info);
+    void generateKnightMoves(int square, LegalMoveCollector& collector);
+    void generateBishopMoves(int square, LegalMoveCollector& collector);
+    void generateRookMoves(int square, LegalMoveCollector& collector);
+    void generateQueenMoves(int square, LegalMoveCollector& collector);
+    void generateKingMoves(int square, LegalMoveCollector& collector);
+    void generatePawnMoves(int square, LegalMoveCollector& collector);
+    void generateCastlingMoves(LegalMoveCollector& collector);
+    void generateEnPassantMoves(LegalMoveCollector& collector);
 
     void removeCastlingRights(const Move& move);
 

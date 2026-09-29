@@ -209,7 +209,7 @@ U64 Position::generateZobristHash() {
 
     if (enPassantSquare != -1) {
         int file = enPassantSquare % 8;
-        hash ^= zobristKeys->getEnPassantFileKey(file);
+        hash ^= zobristKeys->getEnPassantKey(file);
     }
 
     return hash;

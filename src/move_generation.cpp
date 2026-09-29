@@ -4,8 +4,32 @@
 
 using namespace std;
 
-void Position::generateKnightMoves(int square, vector<Move>& moves,
-                                   const LegalityInfo& info) {
+LegalMoveCollector::LegalMoveCollector(Position& position,
+                                       const LegalityInfo& info,
+                                       vector<Move>& moves)
+    : position(position), info(info), moves(moves) {}
+
+bool LegalMoveCollector::requiresBoardValidation(const Move& move) const {
+    return move.type == MoveType::EN_PASSANT_CAPTURE ||
+           move.movedPiece == Piece::WHITE_KING ||
+           move.movedPiece == Piece::BLACK_KING;
+}
+
+void LegalMoveCollector::add(const Move& move) {
+    if (requiresBoardValidation(move)) {
+        StateInfo savedState;
+        position.makeMove(move, savedState);
+        bool legal = !position.inCheck(-position.getColorToMove());
+        position.undoMove(move, savedState);
+
+        if (legal) moves.push_back(move);
+    } else {
+        if (info.legalityRespected(move.fromSquare, move.toSquare))
+            moves.push_back(move);
+    }
+}
+
+void Position::generateKnightMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : knightDir) {
@@ -13,22 +37,18 @@ void Position::generateKnightMoves(int square, vector<Move>& moves,
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
 
-            if (info.legalityRespected(square, newSquare)) {
-                if (board[newSquare] == Piece::EMPTY) {
-                    moves.push_back(
-                        Move::quiet(square, newSquare, board[square]));
-                } else if (getPieceColor(board[newSquare]) !=
-                           getPieceColor(board[square])) {
-                    moves.push_back(Move::capture(
-                        square, newSquare, board[square], board[newSquare]));
-                }
-            };
+            if (board[newSquare] == Piece::EMPTY) {
+                col.add(Move::quiet(square, newSquare, board[square]));
+            } else if (getPieceColor(board[newSquare]) !=
+                       getPieceColor(board[square])) {
+                col.add(Move::capture(square, newSquare, board[square],
+                                      board[newSquare]));
+            }
         }
     }
 }
 
-void Position::generateBishopMoves(int square, vector<Move>& moves,
-                                   const LegalityInfo& info) {
+void Position::generateBishopMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : bishopDir) {
@@ -37,16 +57,12 @@ void Position::generateBishopMoves(int square, vector<Move>& moves,
             int newSquare = newR * 8 + newC;
 
             if (board[newSquare] == Piece::EMPTY) {
-                if (info.legalityRespected(square, newSquare)) {
-                    moves.push_back(
-                        Move::quiet(square, newSquare, board[square]));
-                }
+                col.add(Move::quiet(square, newSquare, board[square]));
             } else {
-                if (info.legalityRespected(square, newSquare) &&
-                    getPieceColor(board[newSquare]) !=
-                        getPieceColor(board[square])) {
-                    moves.push_back(Move::capture(
-                        square, newSquare, board[square], board[newSquare]));
+                if (getPieceColor(board[newSquare]) !=
+                    getPieceColor(board[square])) {
+                    col.add(Move::capture(square, newSquare, board[square],
+                                          board[newSquare]));
                 }
                 break;  // Stop if we hit a piece
             }
@@ -57,8 +73,7 @@ void Position::generateBishopMoves(int square, vector<Move>& moves,
     }
 }
 
-void Position::generateRookMoves(int square, vector<Move>& moves,
-                                 const LegalityInfo& info) {
+void Position::generateRookMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : rookDir) {
@@ -67,16 +82,12 @@ void Position::generateRookMoves(int square, vector<Move>& moves,
             int newSquare = newR * 8 + newC;
 
             if (board[newSquare] == Piece::EMPTY) {
-                if (info.legalityRespected(square, newSquare)) {
-                    moves.push_back(
-                        Move::quiet(square, newSquare, board[square]));
-                }
+                col.add(Move::quiet(square, newSquare, board[square]));
             } else {
-                if (info.legalityRespected(square, newSquare) &&
-                    getPieceColor(board[newSquare]) !=
-                        getPieceColor(board[square])) {
-                    moves.push_back(Move::capture(
-                        square, newSquare, board[square], board[newSquare]));
+                if (getPieceColor(board[newSquare]) !=
+                    getPieceColor(board[square])) {
+                    col.add(Move::capture(square, newSquare, board[square],
+                                          board[newSquare]));
                 }
                 break;  // Stop if we hit a piece
             }
@@ -86,13 +97,12 @@ void Position::generateRookMoves(int square, vector<Move>& moves,
     }
 }
 
-void Position::generateQueenMoves(int square, vector<Move>& moves,
-                                  const LegalityInfo& info) {
-    generateBishopMoves(square, moves, info);
-    generateRookMoves(square, moves, info);
+void Position::generateQueenMoves(int square, LegalMoveCollector& col) {
+    generateBishopMoves(square, col);
+    generateRookMoves(square, col);
 }
 
-void Position::generateKingMoves(int square, vector<Move>& moves) {
+void Position::generateKingMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : kingDir) {
@@ -100,228 +110,111 @@ void Position::generateKingMoves(int square, vector<Move>& moves) {
         if (isInsideBoard(newR, newC)) {
             int newSquare = newR * 8 + newC;
 
-            Move move;
             if (board[newSquare] == Piece::EMPTY) {
-                move = Move::quiet(square, newSquare, board[square]);
+                col.add(Move::quiet(square, newSquare, board[square]));
             } else if (getPieceColor(board[newSquare]) !=
                        getPieceColor(board[square])) {
-                move = Move::capture(square, newSquare, board[square],
-                                     board[newSquare]);
+                col.add(Move::capture(square, newSquare, board[square],
+                                      board[newSquare]));
             } else {
                 continue;
             }
-
-            StateInfo savedState;
-            makeMove(move, savedState);
-            bool legal = !inCheck(-colorToMove);
-            undoMove(move, savedState);
-
-            if (legal) moves.push_back(move);
         }
     }
 }
 
-void Position::generatePawnMoves(int square, vector<Move>& moves,
-                                 const LegalityInfo& info) {
+void Position::generatePawnMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
     Piece piece = board[square];
 
-    if (piece == Piece::WHITE_PAWN) {
-        // Move forward
-        if (isInsideBoard(r - 1, c) && board[(r - 1) * 8 + c] == Piece::EMPTY) {
-            int newSq = (r - 1) * 8 + c;
+    bool white = piece == Piece::WHITE_PAWN;
+    int forward = white ? -1 : 1;
+    int startRank = white ? 6 : 1;
+    int promotionRank = white ? 1 : 6;
+    Piece queen = white ? Piece::WHITE_QUEEN : Piece::BLACK_QUEEN;
+    Piece rook = white ? Piece::WHITE_ROOK : Piece::BLACK_ROOK;
+    Piece bishop = white ? Piece::WHITE_BISHOP : Piece::BLACK_BISHOP;
+    Piece knight = white ? Piece::WHITE_KNIGHT : Piece::BLACK_KNIGHT;
 
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 1) {
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::WHITE_QUEEN));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::WHITE_ROOK));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::WHITE_BISHOP));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::WHITE_KNIGHT));
-                } else {
-                    moves.push_back(Move::quiet(square, newSq, piece));
-                }
+    auto addPawnMove = [&](int target, Piece captured) {
+        if (r == promotionRank) {
+            if (captured == Piece::EMPTY) {
+                col.add(Move::quietPromotion(square, target, piece, queen));
+                col.add(Move::quietPromotion(square, target, piece, rook));
+                col.add(Move::quietPromotion(square, target, piece, bishop));
+                col.add(Move::quietPromotion(square, target, piece, knight));
+            } else {
+                col.add(Move::capturePromotion(square, target, piece, queen,
+                                               captured));
+                col.add(Move::capturePromotion(square, target, piece, rook,
+                                               captured));
+                col.add(Move::capturePromotion(square, target, piece, bishop,
+                                               captured));
+                col.add(Move::capturePromotion(square, target, piece, knight,
+                                               captured));
             }
+        } else if (captured == Piece::EMPTY) {
+            col.add(Move::quiet(square, target, piece));
+        } else {
+            col.add(Move::capture(square, target, piece, captured));
+        }
+    };
 
-            // Double move from starting position
-            newSq = (r - 2) * 8 + c;
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 6 && board[(r - 2) * 8 + c] == Piece::EMPTY) {
-                    moves.push_back(
-                        Move::doublePush(square, (r - 2) * 8 + c, piece));
-                }
+    int forwardRow = r + forward;
+    if (isInsideBoard(forwardRow, c) &&
+        board[forwardRow * 8 + c] == Piece::EMPTY) {
+        addPawnMove(forwardRow * 8 + c, Piece::EMPTY);
+
+        if (r == startRank) {
+            int doubleRow = r + 2 * forward;
+            if (board[doubleRow * 8 + c] == Piece::EMPTY) {
+                col.add(Move::doublePush(square, doubleRow * 8 + c, piece));
             }
         }
+    }
 
-        // Capture diagonally
-        if (isInsideBoard(r - 1, c - 1) &&
-            getPieceColor(board[(r - 1) * 8 + (c - 1)]) == Color::BLACK) {
-            int newSq = (r - 1) * 8 + (c - 1);
+    for (int fileOffset : {-1, 1}) {
+        int targetFile = c + fileOffset;
+        if (!isInsideBoard(forwardRow, targetFile)) continue;
 
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 1) {
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_QUEEN,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(
-                        square, newSq, piece, Piece::WHITE_ROOK, board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_BISHOP,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_KNIGHT,
-                                                           board[newSq]));
-                } else {
-                    moves.push_back(
-                        Move::capture(square, newSq, piece, board[newSq]));
-                }
-            }
-        }
-        if (isInsideBoard(r - 1, c + 1) &&
-            getPieceColor(board[(r - 1) * 8 + (c + 1)]) == Color::BLACK) {
-            int newSq = (r - 1) * 8 + (c + 1);
-
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 1) {
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_QUEEN,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(
-                        square, newSq, piece, Piece::WHITE_ROOK, board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_BISHOP,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::WHITE_KNIGHT,
-                                                           board[newSq]));
-                } else {
-                    moves.push_back(
-                        Move::capture(square, newSq, piece, board[newSq]));
-                }
-            }
-        }
-    } else {
-        // Move forward
-        if (isInsideBoard(r + 1, c) && board[(r + 1) * 8 + c] == Piece::EMPTY) {
-            int newSq = (r + 1) * 8 + c;
-
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 6) {
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::BLACK_QUEEN));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::BLACK_ROOK));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::BLACK_BISHOP));
-                    moves.push_back(Move::quietPromotion(square, newSq, piece,
-                                                         Piece::BLACK_KNIGHT));
-                } else {
-                    moves.push_back(Move::quiet(square, newSq, piece));
-                }
-            }
-            // Double move from starting position
-            newSq = (r + 2) * 8 + c;
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 1 && board[(r + 2) * 8 + c] == Piece::EMPTY) {
-                    moves.push_back(
-                        Move::doublePush(square, (r + 2) * 8 + c, piece));
-                }
-            }
-        }
-
-        // Capture diagonally
-        if (isInsideBoard(r + 1, c - 1) &&
-            getPieceColor(board[(r + 1) * 8 + (c - 1)]) == Color::WHITE) {
-            int newSq = (r + 1) * 8 + (c - 1);
-
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 6) {
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_QUEEN,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(
-                        square, newSq, piece, Piece::BLACK_ROOK, board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_BISHOP,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_KNIGHT,
-                                                           board[newSq]));
-                } else {
-                    moves.push_back(
-                        Move::capture(square, newSq, piece, board[newSq]));
-                }
-            }
-        }
-        if (isInsideBoard(r + 1, c + 1) &&
-            getPieceColor(board[(r + 1) * 8 + (c + 1)]) == Color::WHITE) {
-            int newSq = (r + 1) * 8 + (c + 1);
-
-            if (info.legalityRespected(square, newSq)) {
-                if (r == 6) {
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_QUEEN,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(
-                        square, newSq, piece, Piece::BLACK_ROOK, board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_BISHOP,
-                                                           board[newSq]));
-                    moves.push_back(Move::capturePromotion(square, newSq, piece,
-                                                           Piece::BLACK_KNIGHT,
-                                                           board[newSq]));
-                } else {
-                    moves.push_back(
-                        Move::capture(square, newSq, piece, board[newSq]));
-                }
-            }
+        int target = forwardRow * 8 + targetFile;
+        if (board[target] != Piece::EMPTY &&
+            getPieceColor(board[target]) != getPieceColor(piece)) {
+            addPawnMove(target, board[target]);
         }
     }
 }
 
-void Position::generateEnPassantMoves(vector<Move>& moves,
-                                      const LegalityInfo& info) {
+void Position::generateEnPassantMoves(LegalMoveCollector& col) {
     if (enPassantSquare == -1) return;
-
-    auto addIfLegal = [&](const Move& move) {
-        StateInfo savedState;
-        makeMove(move, savedState);
-        bool legal = !inCheck(-colorToMove);
-        undoMove(move, savedState);
-
-        if (legal) moves.push_back(move);
-    };
 
     int r = enPassantSquare / 8, c = enPassantSquare % 8;
     if (colorToMove == Color::WHITE) {
         if (isInsideBoard(r + 1, c - 1) &&
             board[(r + 1) * 8 + (c - 1)] == Piece::WHITE_PAWN) {
-            addIfLegal(Move::enPassant((r + 1) * 8 + (c - 1), enPassantSquare,
-                                       Piece::WHITE_PAWN, Piece::BLACK_PAWN));
+            col.add(Move::enPassant((r + 1) * 8 + (c - 1), enPassantSquare,
+                                    Piece::WHITE_PAWN, Piece::BLACK_PAWN));
         }
         if (isInsideBoard(r + 1, c + 1) &&
             board[(r + 1) * 8 + (c + 1)] == Piece::WHITE_PAWN) {
-            addIfLegal(Move::enPassant((r + 1) * 8 + (c + 1), enPassantSquare,
-                                       Piece::WHITE_PAWN, Piece::BLACK_PAWN));
+            col.add(Move::enPassant((r + 1) * 8 + (c + 1), enPassantSquare,
+                                    Piece::WHITE_PAWN, Piece::BLACK_PAWN));
         }
     } else {
         if (isInsideBoard(r - 1, c - 1) &&
             board[(r - 1) * 8 + (c - 1)] == Piece::BLACK_PAWN) {
-            addIfLegal(Move::enPassant((r - 1) * 8 + (c - 1), enPassantSquare,
-                                       Piece::BLACK_PAWN, Piece::WHITE_PAWN));
+            col.add(Move::enPassant((r - 1) * 8 + (c - 1), enPassantSquare,
+                                    Piece::BLACK_PAWN, Piece::WHITE_PAWN));
         }
         if (isInsideBoard(r - 1, c + 1) &&
             board[(r - 1) * 8 + (c + 1)] == Piece::BLACK_PAWN) {
-            addIfLegal(Move::enPassant((r - 1) * 8 + (c + 1), enPassantSquare,
-                                       Piece::BLACK_PAWN, Piece::WHITE_PAWN));
+            col.add(Move::enPassant((r - 1) * 8 + (c + 1), enPassantSquare,
+                                    Piece::BLACK_PAWN, Piece::WHITE_PAWN));
         }
     }
 }
 
-void Position::generateCastlingMoves(vector<Move>& moves) {
+void Position::generateCastlingMoves(LegalMoveCollector& col) {
     if (colorToMove == Color::WHITE) {
         if (castlingRightsContains(castlingRights,
                                    CastlingRights::WHITE_KINGSIDE)) {
@@ -329,7 +222,7 @@ void Position::generateCastlingMoves(vector<Move>& moves) {
                 !isSquareAttacked(60, Color::BLACK) &&
                 !isSquareAttacked(61, Color::BLACK) &&
                 !isSquareAttacked(62, Color::BLACK)) {
-                moves.push_back(Move::castling(CastlingRights::WHITE_KINGSIDE));
+                col.add(Move::castling(CastlingRights::WHITE_KINGSIDE));
             }
         }
         if (castlingRightsContains(castlingRights,
@@ -339,8 +232,7 @@ void Position::generateCastlingMoves(vector<Move>& moves) {
                 !isSquareAttacked(60, Color::BLACK) &&
                 !isSquareAttacked(59, Color::BLACK) &&
                 !isSquareAttacked(58, Color::BLACK)) {
-                moves.push_back(
-                    Move::castling(CastlingRights::WHITE_QUEENSIDE));
+                col.add(Move::castling(CastlingRights::WHITE_QUEENSIDE));
             }
         }
     } else {
@@ -350,7 +242,7 @@ void Position::generateCastlingMoves(vector<Move>& moves) {
                 !isSquareAttacked(4, Color::WHITE) &&
                 !isSquareAttacked(5, Color::WHITE) &&
                 !isSquareAttacked(6, Color::WHITE)) {
-                moves.push_back(Move::castling(CastlingRights::BLACK_KINGSIDE));
+                col.add(Move::castling(CastlingRights::BLACK_KINGSIDE));
             }
         }
         if (castlingRightsContains(castlingRights,
@@ -360,8 +252,7 @@ void Position::generateCastlingMoves(vector<Move>& moves) {
                 !isSquareAttacked(4, Color::WHITE) &&
                 !isSquareAttacked(3, Color::WHITE) &&
                 !isSquareAttacked(2, Color::WHITE)) {
-                moves.push_back(
-                    Move::castling(CastlingRights::BLACK_QUEENSIDE));
+                col.add(Move::castling(CastlingRights::BLACK_QUEENSIDE));
             }
         }
     }
@@ -475,12 +366,13 @@ vector<Move> Position::generateLegalMoves() {
     LegalityInfo info(kingSquare, numCheckers > 0, pinnedSquare,
                       evasionSquares);
     vector<Move> moves;
-    generateCastlingMoves(moves);
-    generateKingMoves(kingSquare, moves);
+    LegalMoveCollector col(*this, info, moves);
+    generateCastlingMoves(col);
+    generateKingMoves(kingSquare, col);
 
     if (numCheckers >= 2) return moves;
 
-    generateEnPassantMoves(moves, info);
+    generateEnPassantMoves(col);
 
     for (int square = 0; square < 64; square++) {
         Piece piece = board[square];
@@ -491,23 +383,23 @@ vector<Move> Position::generateLegalMoves() {
         switch (piece) {
             case Piece::WHITE_PAWN:
             case Piece::BLACK_PAWN:
-                generatePawnMoves(square, moves, info);
+                generatePawnMoves(square, col);
                 break;
             case Piece::WHITE_KNIGHT:
             case Piece::BLACK_KNIGHT:
-                generateKnightMoves(square, moves, info);
+                generateKnightMoves(square, col);
                 break;
             case Piece::WHITE_BISHOP:
             case Piece::BLACK_BISHOP:
-                generateBishopMoves(square, moves, info);
+                generateBishopMoves(square, col);
                 break;
             case Piece::WHITE_ROOK:
             case Piece::BLACK_ROOK:
-                generateRookMoves(square, moves, info);
+                generateRookMoves(square, col);
                 break;
             case Piece::WHITE_QUEEN:
             case Piece::BLACK_QUEEN:
-                generateQueenMoves(square, moves, info);
+                generateQueenMoves(square, col);
                 break;
             default:
                 break;

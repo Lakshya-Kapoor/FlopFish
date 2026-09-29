@@ -10,7 +10,7 @@ class ZobristKeys {
     U64 getPieceSquareKey(Piece piece, int square);
     U64 getColorToMoveKey();
     U64 getCastlingRightsKey(CastlingRights rights);
-    U64 getEnPassantFileKey(int enPassantSquare);
+    U64 getEnPassantKey(int enPassantSquare);
 
    private:
     inline static ZobristKeys* _keys = nullptr;

@@ -42,7 +42,7 @@ U64 ZobristKeys::getCastlingRightsKey(CastlingRights rights) {
     return castlingRightsKeys[rightsIndex];
 }
 
-U64 ZobristKeys::getEnPassantFileKey(int enPassantSquare) {
+U64 ZobristKeys::getEnPassantKey(int enPassantSquare) {
     int file = enPassantSquare % 8;
     return enPassantFileKeys[file];
 }
