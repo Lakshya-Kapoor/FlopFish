@@ -129,3 +129,21 @@ v3: iterative deepening with complete PV move reordering along with capture reor
    | Initial  | 8     | 9.22925  | 819204  |
    | Mid game | 7     | 8.62106  | 835264  |
    | End game | 10    | 0.910092 | 824558  |
+
+## Effeciency of different ways of maintaining history
+
+1. Unordered map no clearing.
+
+   | Position | Depth | Time (s) | Nodes/s |
+   | -------- | ----- | -------- | ------- |
+   | Initial  | 8     | 15.484   | 457522  |
+   | Mid game | 7     | 15.8035  | 453866  |
+   | End game | 10    | 1.91906  | 388825  |
+
+2. Unordered map with clearing.
+
+   | Position | Depth | Time (s) | Nodes/s |
+   | -------- | ----- | -------- | ------- |
+   | Initial  | 8     | 9.53243  | 752447  |
+   | Mid game | 7     | 9.44968  | 749684  |
+   | End game | 10    | 1.13572  | 657008  |

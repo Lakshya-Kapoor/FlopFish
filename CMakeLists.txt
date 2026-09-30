@@ -12,7 +12,7 @@ add_library(flopfish_engine
     src/move.cpp
     src/move_generation.cpp
     src/move_application.cpp
-    src/position.cpp
+    src/game_state.cpp
     src/utils.cpp
     src/zobrist_keys.cpp
     src/transposition_table.cpp

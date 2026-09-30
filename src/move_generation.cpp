@@ -1,13 +1,13 @@
 #include <vector>
 
-#include "position.hpp"
+#include "game_state.hpp"
 
 using namespace std;
 
-LegalMoveCollector::LegalMoveCollector(Position& position,
+LegalMoveCollector::LegalMoveCollector(GameState& gameState,
                                        const LegalityInfo& info,
                                        vector<Move>& moves)
-    : position(position), info(info), moves(moves) {}
+    : gameState(gameState), info(info), moves(moves) {}
 
 bool LegalMoveCollector::requiresBoardValidation(const Move& move) const {
     return move.type == MoveType::EN_PASSANT_CAPTURE ||
@@ -18,9 +18,9 @@ bool LegalMoveCollector::requiresBoardValidation(const Move& move) const {
 void LegalMoveCollector::add(const Move& move) {
     if (requiresBoardValidation(move)) {
         StateInfo savedState;
-        position.makeMove(move, savedState);
-        bool legal = !position.inCheck(-position.getColorToMove());
-        position.undoMove(move, savedState);
+        gameState.makeMove(move, savedState);
+        bool legal = !gameState.inCheck(-gameState.getColorToMove());
+        gameState.undoMove(move, savedState);
 
         if (legal) moves.push_back(move);
     } else {
@@ -29,7 +29,7 @@ void LegalMoveCollector::add(const Move& move) {
     }
 }
 
-void Position::generateKnightMoves(int square, LegalMoveCollector& col) {
+void GameState::generateKnightMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : knightDir) {
@@ -48,7 +48,7 @@ void Position::generateKnightMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void Position::generateBishopMoves(int square, LegalMoveCollector& col) {
+void GameState::generateBishopMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : bishopDir) {
@@ -73,7 +73,7 @@ void Position::generateBishopMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void Position::generateRookMoves(int square, LegalMoveCollector& col) {
+void GameState::generateRookMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : rookDir) {
@@ -97,12 +97,12 @@ void Position::generateRookMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void Position::generateQueenMoves(int square, LegalMoveCollector& col) {
+void GameState::generateQueenMoves(int square, LegalMoveCollector& col) {
     generateBishopMoves(square, col);
     generateRookMoves(square, col);
 }
 
-void Position::generateKingMoves(int square, LegalMoveCollector& col) {
+void GameState::generateKingMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : kingDir) {
@@ -123,7 +123,7 @@ void Position::generateKingMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void Position::generatePawnMoves(int square, LegalMoveCollector& col) {
+void GameState::generatePawnMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
     Piece piece = board[square];
 
@@ -185,7 +185,7 @@ void Position::generatePawnMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void Position::generateEnPassantMoves(LegalMoveCollector& col) {
+void GameState::generateEnPassantMoves(LegalMoveCollector& col) {
     if (enPassantSquare == -1) return;
 
     int r = enPassantSquare / 8, c = enPassantSquare % 8;
@@ -214,7 +214,7 @@ void Position::generateEnPassantMoves(LegalMoveCollector& col) {
     }
 }
 
-void Position::generateCastlingMoves(LegalMoveCollector& col) {
+void GameState::generateCastlingMoves(LegalMoveCollector& col) {
     if (colorToMove == Color::WHITE) {
         if (castlingRightsContains(castlingRights,
                                    CastlingRights::WHITE_KINGSIDE)) {
@@ -258,7 +258,7 @@ void Position::generateCastlingMoves(LegalMoveCollector& col) {
     }
 }
 
-vector<Move> Position::generateLegalMoves() {
+vector<Move> GameState::generateLegalMoves() {
     int kingSquare = -1;
     for (int square = 0; square < 64; square++) {
         Piece piece = board[square];

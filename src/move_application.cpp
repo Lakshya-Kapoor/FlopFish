@@ -1,7 +1,7 @@
-#include "position.hpp"
+#include "game_state.hpp"
 #include "zobrist_keys.hpp"
 
-void Position::makeMove(const Move& move) {
+void GameState::makeMove(const Move& move) {
     Piece movingPiece = Piece::EMPTY;
     if (move.type != MoveType::CASTLING) movingPiece = move.movedPiece;
 
@@ -239,9 +239,12 @@ void Position::makeMove(const Move& move) {
     if (move.type != MoveType::DOUBLE_PUSH) enPassantSquare = -1;
 
     colorToMove = -colorToMove;
+
+    // update position count
+    positionCount[zobristHash]++;
 }
 
-void Position::makeMove(const Move& move, StateInfo& saveState) {
+void GameState::makeMove(const Move& move, StateInfo& saveState) {
     saveState.castlingRights = castlingRights;
     saveState.enPassantSquare = enPassantSquare;
     saveState.halfmoveClock = halfmoveClock;
@@ -251,7 +254,15 @@ void Position::makeMove(const Move& move, StateInfo& saveState) {
     makeMove(move);
 }
 
-void Position::undoMove(const Move& move, const StateInfo& savedState) {
+void GameState::undoMove(const Move& move, const StateInfo& savedState) {
+    // decrement the position count for the current position before restoring
+    // the previous state
+
+    positionCount[zobristHash]--;
+    if (positionCount[zobristHash] == 0) {
+        positionCount.erase(zobristHash);
+    }
+
     castlingRights = savedState.castlingRights;
     enPassantSquare = savedState.enPassantSquare;
     halfmoveClock = savedState.halfmoveClock;

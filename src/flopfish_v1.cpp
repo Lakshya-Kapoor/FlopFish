@@ -52,11 +52,11 @@ const int kingTable[64] = {
 
 FlopFishv1::FlopFishv1(Config config) : config(config) {}
 
-int FlopFishv1::evaluateMaterial(Position& pos) {
+int FlopFishv1::evaluateMaterial(GameState& gameState) {
     int score = 0;
 
     for (int square = 0; square < 64; square++) {
-        Piece piece = pos.getPieceAt(square);
+        Piece piece = gameState.getPieceAt(square);
         if (isWhitePiece(piece))
             score += getPieceValue(piece);
         else if (isBlackPiece(piece))
@@ -65,10 +65,10 @@ int FlopFishv1::evaluateMaterial(Position& pos) {
     return score;
 }
 
-int FlopFishv1::evaluatePieceSquareTables(Position& pos) {
+int FlopFishv1::evaluatePieceSquareTables(GameState& gameState) {
     int score = 0;
     for (int square = 0; square < 64; square++) {
-        Piece piece = pos.getPieceAt(square);
+        Piece piece = gameState.getPieceAt(square);
         if (piece == Piece::WHITE_PAWN)
             score += pawnTable[square];
         else if (piece == Piece::WHITE_KNIGHT)
@@ -99,27 +99,31 @@ int FlopFishv1::evaluatePieceSquareTables(Position& pos) {
 }
 
 // returns evaluation relative to the side to move.
-int FlopFishv1::evaluate(Position& pos) {
-    PositionState state = pos.getPositionState();
+int FlopFishv1::evaluate(GameState& gameState) {
+    PositionState state = gameState.getPositionState();
     if (state == PositionState::CHECKMATE) return -100000;
-    if (state == PositionState::STALEMATE || state == PositionState::DRAW)
+    if (state == PositionState::STALEMATE ||
+        state == PositionState::DRAW_BY_REPETITION ||
+        state == PositionState::DRAW_BY_HALFCLOCK)
         return 0;
 
     int score = 0;
-    score += evaluateMaterial(pos);
-    score += evaluatePieceSquareTables(pos);
+    score += evaluateMaterial(gameState);
+    score += evaluatePieceSquareTables(gameState);
 
-    return (pos.getColorToMove() == Color::WHITE) ? score : -score;
+    return (gameState.getColorToMove() == Color::WHITE) ? score : -score;
 }
 
-int FlopFishv1::negamax(Position& pos, int depth) {
-    if (depth == 0) return evaluate(pos);
+int FlopFishv1::negamax(GameState& gameState, int depth) {
+    if (depth == 0) return evaluate(gameState);
 
-    vector<Move> moves = pos.generateLegalMoves();
+    vector<Move> moves = gameState.generateLegalMoves();
     if (moves.empty()) {
-        PositionState state = pos.getPositionState();
+        PositionState state = gameState.getPositionState();
         if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
+        if (state == PositionState::STALEMATE ||
+            state == PositionState::DRAW_BY_REPETITION ||
+            state == PositionState::DRAW_BY_HALFCLOCK)
             return 0;
     }
 
@@ -127,28 +131,30 @@ int FlopFishv1::negamax(Position& pos, int depth) {
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        int eval = -negamax(pos, depth - 1);
+        int eval = -negamax(gameState, depth - 1);
         maxScore = max(maxScore, eval);
 
-        pos.undoMove(move, savedState);
+        gameState.undoMove(move, savedState);
     }
     return maxScore;
 }
 
-int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
+int FlopFishv1::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
                                  int beta) {
     result.nodesVisited++;
-    if (depth == 0) return evaluate(pos);
+    if (depth == 0) return evaluate(gameState);
 
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
+    vector<Move> moves = gameState.generateLegalMoves();
+    if (config.reorderMoves) moveOrdering(moves, gameState);
 
     if (moves.empty()) {
-        PositionState state = pos.getPositionState();
+        PositionState state = gameState.getPositionState();
         if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
+        if (state == PositionState::STALEMATE ||
+            state == PositionState::DRAW_BY_REPETITION ||
+            state == PositionState::DRAW_BY_HALFCLOCK)
             return 0;
     }
 
@@ -156,10 +162,10 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
-        pos.undoMove(move, savedState);
+        int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha);
+        gameState.undoMove(move, savedState);
 
         maxScore = max(maxScore, score);
         alpha = max(alpha, score);
@@ -169,7 +175,8 @@ int FlopFishv1::negamaxAlphaBeta(Position& pos, int depth, int alpha,
     return maxScore;
 }
 
-void FlopFishv1::moveOrdering(std::vector<Move>& moves, const Position& pos) {
+void FlopFishv1::moveOrdering(std::vector<Move>& moves,
+                              const GameState& gameState) {
     int n = moves.size();
     int i = 0;  // index of first non capture move
     for (int j = 0; j < n; j++) {
@@ -183,21 +190,21 @@ void FlopFishv1::moveOrdering(std::vector<Move>& moves, const Position& pos) {
 
     if (config.reorderCaptures) {
         sort(moves.begin(), moves.begin() + i,
-             [&pos](const Move& a, const Move& b) {
+             [&gameState](const Move& a, const Move& b) {
                  int aValue = getPieceValue(a.capturedPiece) * 10 -
-                              getPieceValue(pos.getPieceAt(a.fromSquare));
+                              getPieceValue(gameState.getPieceAt(a.fromSquare));
                  int bValue = getPieceValue(b.capturedPiece) * 10 -
-                              getPieceValue(pos.getPieceAt(b.fromSquare));
+                              getPieceValue(gameState.getPieceAt(b.fromSquare));
                  return aValue > bValue;
              });
     }
 }
 
-Result FlopFishv1::getMove(Position pos) {
+Result FlopFishv1::getMove(GameState gameState) {
     auto startTime = chrono::steady_clock::now();
 
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
+    vector<Move> moves = gameState.generateLegalMoves();
+    if (config.reorderMoves) moveOrdering(moves, gameState);
 
     int bestScore = -INF;
     int alpha = -INF;
@@ -205,11 +212,12 @@ Result FlopFishv1::getMove(Position pos) {
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        int score = -negamaxAlphaBeta(pos, config.depth - 1, -beta, -alpha);
+        int score =
+            -negamaxAlphaBeta(gameState, config.depth - 1, -beta, -alpha);
 
-        pos.undoMove(move, savedState);
+        gameState.undoMove(move, savedState);
 
         if (score > bestScore) {
             bestScore = score;

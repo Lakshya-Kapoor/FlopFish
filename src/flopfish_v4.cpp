@@ -7,23 +7,23 @@ using namespace std;
 
 FlopFishv4::FlopFishv4(Config config) : FlopFishv1(config), tt(config.TTSize) {}
 
-int FlopFishv4::negamaxAlphaBeta(Position& pos, int depth, int alpha,
+int FlopFishv4::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
                                  int beta) {
     result.nodesVisited++;
 
-    if (depth == 0) return evaluate(pos);
+    if (depth == 0) return evaluate(gameState);
 
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
+    vector<Move> moves = gameState.generateLegalMoves();
+    if (config.reorderMoves) moveOrdering(moves, gameState);
 
-    if (moves.empty()) {
-        PositionState state = pos.getPositionState();
-        if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
-            return 0;
-    }
+    PositionState state = gameState.getPositionState(moves);
+    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::STALEMATE ||
+        state == PositionState::DRAW_BY_HALFCLOCK ||
+        state == PositionState::DRAW_BY_REPETITION)
+        return 0;
 
-    TTEntry* entry = tt.probe(pos.getZobristHash());
+    TTEntry* entry = tt.probe(gameState.getZobristHash());
     Move ttMove;
 
     if (entry != nullptr) {
@@ -59,10 +59,10 @@ int FlopFishv4::negamaxAlphaBeta(Position& pos, int depth, int alpha,
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
-        pos.undoMove(move, savedState);
+        int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha);
+        gameState.undoMove(move, savedState);
 
         if (score > bestScore) {
             bestScore = score;
@@ -81,12 +81,12 @@ int FlopFishv4::negamaxAlphaBeta(Position& pos, int depth, int alpha,
     else
         bound = Bound::EXACT;
 
-    tt.store(pos.getZobristHash(), depth, bestScore, bound, bestMove);
+    tt.store(gameState.getZobristHash(), depth, bestScore, bound, bestMove);
 
     return bestScore;
 }
 
-Result FlopFishv4::getMove(Position pos) {
+Result FlopFishv4::getMove(GameState gameState) {
     auto startTime = chrono::steady_clock::now();
 
     Move bestMove;
@@ -95,15 +95,15 @@ Result FlopFishv4::getMove(Position pos) {
         int alpha = -INF;
         int beta = INF;
 
-        vector<Move> moves = pos.generateLegalMoves();
-        if (config.reorderMoves) moveOrdering(moves, pos);
+        vector<Move> moves = gameState.generateLegalMoves();
+        if (config.reorderMoves) moveOrdering(moves, gameState);
 
         for (const Move& move : moves) {
             StateInfo savedState;
-            pos.makeMove(move, savedState);
+            gameState.makeMove(move, savedState);
 
-            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
-            pos.undoMove(move, savedState);
+            int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha);
+            gameState.undoMove(move, savedState);
 
             if (score > bestScore) {
                 bestMove = move;

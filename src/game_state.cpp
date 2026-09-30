@@ -1,4 +1,4 @@
-#include "position.hpp"
+#include "game_state.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -46,29 +46,34 @@ bool LegalityInfo::legalityRespected(int fromSquare, int toSquare) const {
     return true;
 }
 
-Position::Position() {
+GameState::GameState() {
     initPos();
     zobristHash = generateZobristHash();
 }
 
-Position::Position(const string& fen) {
+GameState::GameState(const string& fen) {
     parseFENPos(fen);
     zobristHash = generateZobristHash();
 }
 
-Piece Position::getPieceAt(int square) const { return board[square]; }
+Piece GameState::getPieceAt(int square) const { return board[square]; }
 
-Color Position::getColorToMove() const { return colorToMove; }
+Color GameState::getColorToMove() const { return colorToMove; }
 
-CastlingRights Position::getCastlingRights() const { return castlingRights; }
+CastlingRights GameState::getCastlingRights() const { return castlingRights; }
 
-int Position::getEnPassantSquare() const { return enPassantSquare; }
+int GameState::getEnPassantSquare() const { return enPassantSquare; }
 
-int Position::getHalfmoveClock() const { return halfmoveClock; }
+int GameState::getHalfmoveClock() const { return halfmoveClock; }
 
-int Position::getFullmoveNumber() const { return fullmoveNumber; }
+int GameState::getFullmoveNumber() const { return fullmoveNumber; }
 
-PositionState Position::getPositionState() {
+PositionState GameState::getPositionState() {
+    if (positionCount[zobristHash] >= 3)
+        return PositionState::DRAW_BY_REPETITION;
+
+    if (halfmoveClock >= 100) return PositionState::DRAW_BY_HALFCLOCK;
+
     vector<Move> legalMoves = generateLegalMoves();
 
     if (legalMoves.empty()) {
@@ -79,16 +84,29 @@ PositionState Position::getPositionState() {
         }
     }
 
-    if (halfmoveClock >= 100) {
-        return PositionState::DRAW;
+    return PositionState::ONGOING;
+}
+
+PositionState GameState::getPositionState(vector<Move>& legalMoves) {
+    if (positionCount[zobristHash] >= 3)
+        return PositionState::DRAW_BY_REPETITION;
+
+    if (halfmoveClock >= 100) return PositionState::DRAW_BY_HALFCLOCK;
+
+    if (legalMoves.empty()) {
+        if (inCheck(colorToMove)) {
+            return PositionState::CHECKMATE;
+        } else {
+            return PositionState::STALEMATE;
+        }
     }
 
     return PositionState::ONGOING;
 }
 
-U64 Position::getZobristHash() const { return zobristHash; }
+U64 GameState::getZobristHash() const { return zobristHash; }
 
-void Position::initPos() {
+void GameState::initPos() {
     board[0] = board[7] = Piece::BLACK_ROOK;
     board[1] = board[6] = Piece::BLACK_KNIGHT;
     board[2] = board[5] = Piece::BLACK_BISHOP;
@@ -120,7 +138,7 @@ void Position::initPos() {
     fullmoveNumber = 1;
 }
 
-void Position::parseFENPos(const string& fen) {
+void GameState::parseFENPos(const string& fen) {
     istringstream iss(fen);
     string boardPart, colorPart, castlingPart, enPassantPart, halfmovePart,
         fullmovePart;
@@ -188,7 +206,7 @@ void Position::parseFENPos(const string& fen) {
     fullmoveNumber = stoi(fullmovePart);
 }
 
-U64 Position::generateZobristHash() {
+U64 GameState::generateZobristHash() {
     ZobristKeys* zobristKeys = ZobristKeys::getKeys();
     U64 hash = 0;
 
@@ -215,7 +233,7 @@ U64 Position::generateZobristHash() {
     return hash;
 }
 
-void Position::print() const {
+void GameState::print() const {
     for (int i = 0; i < 8; i++) {
         cout << 8 - i << " ";
         for (int j = 0; j < 8; j++) {
@@ -252,11 +270,11 @@ void Position::print() const {
     cout << "  a b c d e f g h" << endl;
 }
 
-bool Position::isInsideBoard(int r, int c) const {
+bool GameState::isInsideBoard(int r, int c) const {
     return r >= 0 && r < 8 && c >= 0 && c < 8;
 }
 
-bool Position::isSquareAttacked(int square, Color byColor) const {
+bool GameState::isSquareAttacked(int square, Color byColor) const {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : knightDir) {
@@ -346,7 +364,7 @@ bool Position::isSquareAttacked(int square, Color byColor) const {
     return false;
 }
 
-bool Position::inCheck(Color color) const {
+bool GameState::inCheck(Color color) const {
     int kingSquare = -1;
     for (int i = 0; i < 64; i++) {
         if (color == Color::WHITE && board[i] == Piece::WHITE_KING) {
@@ -362,7 +380,7 @@ bool Position::inCheck(Color color) const {
     return isSquareAttacked(kingSquare, -color);
 }
 
-void Position::removeCastlingRights(const Move& move) {
+void GameState::removeCastlingRights(const Move& move) {
     if (castlingRightsContains(castlingRights,
                                CastlingRights::WHITE_KINGSIDE) &&
         (move.fromSquare == 63 || move.fromSquare == 60 ||

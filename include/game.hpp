@@ -1,12 +1,12 @@
 #pragma once
 #include <string>
 
+#include "game_state.hpp"
 #include "player.hpp"
-#include "position.hpp"
 
 class Game {
    private:
-    Position pos;
+    GameState gameState;
     Player* whitePlayer;
     Player* blackPlayer;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "move.hpp"
@@ -36,11 +37,11 @@ class LegalityInfo {
     bool legalityRespected(int fromSquare, int toSquare) const;
 };
 
-class Position;
+class GameState;
 
 class LegalMoveCollector {
    public:
-    LegalMoveCollector(Position& position, const LegalityInfo& info,
+    LegalMoveCollector(GameState& gameState, const LegalityInfo& info,
                        std::vector<Move>& moves);
 
     void add(const Move& move);
@@ -48,7 +49,7 @@ class LegalMoveCollector {
    private:
     bool requiresBoardValidation(const Move& move) const;
 
-    Position& position;
+    GameState& gameState;
     const LegalityInfo& info;
     std::vector<Move>& moves;
 };
@@ -61,9 +62,15 @@ struct StateInfo {
     U64 zobristHash;
 };
 
-enum class PositionState { ONGOING, CHECKMATE, STALEMATE, DRAW };
+enum class PositionState : U8 {
+    ONGOING,
+    CHECKMATE,
+    STALEMATE,
+    DRAW_BY_HALFCLOCK,
+    DRAW_BY_REPETITION
+};
 
-class Position {
+class GameState {
    private:
     Piece board[64];
     Color colorToMove;
@@ -72,6 +79,7 @@ class Position {
     int halfmoveClock;
     int fullmoveNumber;
     U64 zobristHash;
+    std::unordered_map<U64, int> positionCount;
 
     void initPos();
     void parseFENPos(const std::string& fen);
@@ -90,8 +98,8 @@ class Position {
     bool isInsideBoard(int r, int c) const;
 
    public:
-    Position();
-    Position(const std::string& fen);
+    GameState();
+    GameState(const std::string& fen);
 
     Piece getPieceAt(int square) const;
     Color getColorToMove() const;
@@ -100,6 +108,7 @@ class Position {
     int getHalfmoveClock() const;
     int getFullmoveNumber() const;
     PositionState getPositionState();
+    PositionState getPositionState(std::vector<Move>& legalMoves);
 
     U64 getZobristHash() const;
     U64 generateZobristHash();

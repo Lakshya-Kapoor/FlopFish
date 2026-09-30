@@ -2,8 +2,8 @@
 
 #include <vector>
 
+#include "game_state.hpp"
 #include "move.hpp"
-#include "position.hpp"
 #include "transposition_table.hpp"
 
 struct Result {
@@ -14,7 +14,7 @@ struct Result {
 
 class Player {
    public:
-    virtual Result getMove(Position pos) = 0;
+    virtual Result getMove(GameState gameState) = 0;
 };
 
 struct Config {
@@ -30,26 +30,27 @@ class FlopFishv1 : public Player {
     Result result;
     Config config;
 
-    int evaluate(Position& pos);
-    int evaluateMaterial(Position& pos);
-    int evaluatePieceSquareTables(Position& pos);
+    int evaluate(GameState& gameState);
+    int evaluateMaterial(GameState& gameState);
+    int evaluatePieceSquareTables(GameState& gameState);
 
-    int negamax(Position& pos, int depth);
-    virtual int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta);
+    int negamax(GameState& gameState, int depth);
+    virtual int negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
+                                 int beta);
 
-    void moveOrdering(std::vector<Move>& moves, const Position& pos);
+    void moveOrdering(std::vector<Move>& moves, const GameState& gameState);
 
    public:
     FlopFishv1(Config config);
 
-    Result getMove(Position pos) override;
+    Result getMove(GameState gameState) override;
 };
 
 class FlopFishv2 : public FlopFishv1 {
    public:
     FlopFishv2(Config config);
 
-    Result getMove(Position pos) override;
+    Result getMove(GameState gameState) override;
 };
 
 class FlopFishv3 : public FlopFishv1 {
@@ -59,23 +60,23 @@ class FlopFishv3 : public FlopFishv1 {
     // i+1, and so on.
     Move pv[32][32];
 
-    virtual int negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
-                                 int ply, bool usePV);
+    virtual int negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
+                                 int beta, int ply, bool usePV);
 
    public:
     FlopFishv3(Config config);
 
-    Result getMove(Position pos) override;
+    Result getMove(GameState gameState) override;
 };
 
 class FlopFishv4 : public FlopFishv1 {
    protected:
     TranspositionTable tt;
-    int negamaxAlphaBeta(Position& pos, int depth, int alpha,
+    int negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
                          int beta) override;
 
    public:
     FlopFishv4(Config config);
 
-    Result getMove(Position pos) override;
+    Result getMove(GameState gameState) override;
 };

@@ -6,7 +6,7 @@ using namespace std;
 
 FlopFishv2::FlopFishv2(Config config) : FlopFishv1(config) {}
 
-Result FlopFishv2::getMove(Position pos) {
+Result FlopFishv2::getMove(GameState gameState) {
     auto startTime = chrono::steady_clock::now();
 
     Move bestMove;
@@ -16,8 +16,8 @@ Result FlopFishv2::getMove(Position pos) {
         int alpha = -INF;
         int beta = INF;
 
-        vector<Move> moves = pos.generateLegalMoves();
-        if (config.reorderMoves) moveOrdering(moves, pos);
+        vector<Move> moves = gameState.generateLegalMoves();
+        if (config.reorderMoves) moveOrdering(moves, gameState);
 
         if (depth > 1) {
             int idx = 0;
@@ -33,11 +33,11 @@ Result FlopFishv2::getMove(Position pos) {
 
         for (const Move& move : moves) {
             StateInfo savedState;
-            pos.makeMove(move, savedState);
+            gameState.makeMove(move, savedState);
 
-            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha);
+            int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha);
 
-            pos.undoMove(move, savedState);
+            gameState.undoMove(move, savedState);
 
             if (score > bestScore) {
                 bestScore = score;

@@ -5,18 +5,20 @@ using namespace std;
 
 FlopFishv3::FlopFishv3(Config config) : FlopFishv1(config) {}
 
-int FlopFishv3::negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
-                                 int ply, bool usePV) {
+int FlopFishv3::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
+                                 int beta, int ply, bool usePV) {
     result.nodesVisited++;
-    if (depth == 0) return evaluate(pos);
+    if (depth == 0) return evaluate(gameState);
 
-    vector<Move> moves = pos.generateLegalMoves();
-    if (config.reorderMoves) moveOrdering(moves, pos);
+    vector<Move> moves = gameState.generateLegalMoves();
+    if (config.reorderMoves) moveOrdering(moves, gameState);
 
     if (moves.empty()) {
-        PositionState state = pos.getPositionState();
+        PositionState state = gameState.getPositionState();
         if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE || state == PositionState::DRAW)
+        if (state == PositionState::STALEMATE ||
+            state == PositionState::DRAW_BY_REPETITION ||
+            state == PositionState::DRAW_BY_HALFCLOCK)
             return 0;
     }
 
@@ -37,13 +39,13 @@ int FlopFishv3::negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        int score =
-            -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha, ply + 1, usePV);
+        int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha,
+                                      ply + 1, usePV);
         usePV = false;  // Only use PV for the first move at each depth
 
-        pos.undoMove(move, savedState);
+        gameState.undoMove(move, savedState);
 
         if (score > bestScore) {
             bestScore = score;
@@ -64,7 +66,7 @@ int FlopFishv3::negamaxAlphaBeta(Position& pos, int depth, int alpha, int beta,
     return bestScore;
 }
 
-Result FlopFishv3::getMove(Position pos) {
+Result FlopFishv3::getMove(GameState gameState) {
     auto startTime = chrono::steady_clock::now();
 
     int ply = 1;
@@ -75,8 +77,8 @@ Result FlopFishv3::getMove(Position pos) {
         int alpha = -INF;
         int beta = INF;
 
-        vector<Move> moves = pos.generateLegalMoves();
-        if (config.reorderMoves) moveOrdering(moves, pos);
+        vector<Move> moves = gameState.generateLegalMoves();
+        if (config.reorderMoves) moveOrdering(moves, gameState);
 
         if (depth > 1) {
             int idx = 0;
@@ -94,13 +96,13 @@ Result FlopFishv3::getMove(Position pos) {
 
         for (const Move& move : moves) {
             StateInfo savedState;
-            pos.makeMove(move, savedState);
+            gameState.makeMove(move, savedState);
 
-            int score = -negamaxAlphaBeta(pos, depth - 1, -beta, -alpha,
+            int score = -negamaxAlphaBeta(gameState, depth - 1, -beta, -alpha,
                                           ply + 1, usePV);
             usePV = false;
 
-            pos.undoMove(move, savedState);
+            gameState.undoMove(move, savedState);
 
             if (score > bestScore) {
                 bestScore = score;

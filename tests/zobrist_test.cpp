@@ -2,29 +2,29 @@
 #include <string>
 #include <vector>
 
-#include "position.hpp"
+#include "game_state.hpp"
 
 using namespace std;
 
 bool verifyPosition(const string& fen) {
-    Position position(fen);
-    U64 originalHash = position.getZobristHash();
-    vector<Move> moves = position.generateLegalMoves();
+    GameState gameState(fen);
+    U64 originalHash = gameState.getZobristHash();
+    vector<Move> moves = gameState.generateLegalMoves();
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        position.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        if (position.getZobristHash() != position.generateZobristHash()) {
+        if (gameState.getZobristHash() != gameState.generateZobristHash()) {
             cerr << "Hash mismatch after move " << move.toString() << " in "
                  << fen << '\n';
             return false;
         }
 
-        position.undoMove(move, savedState);
+        gameState.undoMove(move, savedState);
 
-        if (position.getZobristHash() != originalHash ||
-            position.getZobristHash() != position.generateZobristHash()) {
+        if (gameState.getZobristHash() != originalHash ||
+            gameState.getZobristHash() != gameState.generateZobristHash()) {
             cerr << "Hash mismatch after undoing move " << move.toString()
                  << " in " << fen << '\n';
             return false;

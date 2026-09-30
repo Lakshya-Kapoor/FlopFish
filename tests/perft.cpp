@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "position.hpp"
+#include "game_state.hpp"
 using namespace std;
 
 struct PerftCase {
@@ -13,35 +13,35 @@ struct PerftCase {
     vector<pair<int, U64>> expectedNodes;
 };
 
-U64 perft(Position& pos, int depth) {
+U64 perft(GameState& gameState, int depth) {
     if (depth == 0) return 1;
 
     U64 nodes = 0;
-    vector<Move> moves = pos.generateLegalMoves();
+    vector<Move> moves = gameState.generateLegalMoves();
 
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
-        nodes += perft(pos, depth - 1);
-        pos.undoMove(move, savedState);
+        gameState.makeMove(move, savedState);
+        nodes += perft(gameState, depth - 1);
+        gameState.undoMove(move, savedState);
     }
 
     return nodes;
 }
 
-U64 perftDivide(Position& pos, int depth) {
+U64 perftDivide(GameState& gameState, int depth) {
     if (depth == 0) return 1;
 
     U64 totalNodes = 0;
 
-    vector<Move> moves = pos.generateLegalMoves();
+    vector<Move> moves = gameState.generateLegalMoves();
     for (const Move& move : moves) {
         StateInfo savedState;
-        pos.makeMove(move, savedState);
+        gameState.makeMove(move, savedState);
 
-        U64 nodes = perft(pos, depth - 1);
+        U64 nodes = perft(gameState, depth - 1);
 
-        pos.undoMove(move, savedState);
+        gameState.undoMove(move, savedState);
 
         cout << move.toString() << ": " << nodes << "\n";
         totalNodes += nodes;
@@ -54,8 +54,8 @@ bool runPerftCase(PerftCase& testCase) {
     bool passed = true;
 
     for (const auto& [depth, expected] : testCase.expectedNodes) {
-        Position pos(testCase.fen);
-        U64 actual = perft(pos, depth);
+        GameState gameState(testCase.fen);
+        U64 actual = perft(gameState, depth);
 
         if (actual != expected) {
             cerr << "FAIL depth " << depth << ": expected " << expected
