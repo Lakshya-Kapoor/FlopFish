@@ -51,15 +51,42 @@ void Position::makeMove(const Move& move) {
             zobristHash ^=
                 zobristKeys->getPieceSquareKey(move.movedPiece, move.toSquare);
 
+            // en passant square should only be set if there is an en passant
+            // capture possible, which requires checking whether there is
+            // something to capture and also the capture is legal (only doing
+            // pseudo legal check here)
             if (colorToMove == Color::WHITE) {
                 enPassantSquare = move.toSquare + 8;
+                int r = enPassantSquare / 8;
+                int c = enPassantSquare % 8;
+                if (isInsideBoard(r - 1, c - 1) &&
+                    board[(r - 1) * 8 + (c - 1)] == Piece::BLACK_PAWN) {
+                    // pseudo legal en passant capture to the left
+                } else if (isInsideBoard(r - 1, c + 1) &&
+                           board[(r - 1) * 8 + (c + 1)] == Piece::BLACK_PAWN) {
+                    // pseudo legal en passant capture to the right
+                } else {
+                    enPassantSquare = -1;  // no pseudo legal en passant capture
+                }
             } else {
                 enPassantSquare = move.toSquare - 8;
+
+                int r = enPassantSquare / 8;
+                int c = enPassantSquare % 8;
+                if (isInsideBoard(r + 1, c - 1) &&
+                    board[(r + 1) * 8 + (c - 1)] == Piece::WHITE_PAWN) {
+                    // pseudo legal en passant capture to the left
+                } else if (isInsideBoard(r + 1, c + 1) &&
+                           board[(r + 1) * 8 + (c + 1)] == Piece::WHITE_PAWN) {
+                    // pseudo legal en passant capture to the right
+                } else {
+                    enPassantSquare = -1;  // no pseudo legal en passant capture
+                }
             }
 
-            // adding the en passant key to the hash for the new en passant
-            // square
-            zobristHash ^= zobristKeys->getEnPassantKey(enPassantSquare);
+            // add the new en passant square to the hash if it is valid
+            if (enPassantSquare != -1)
+                zobristHash ^= zobristKeys->getEnPassantKey(enPassantSquare);
 
             board[move.toSquare] = move.movedPiece;
             board[move.fromSquare] = Piece::EMPTY;

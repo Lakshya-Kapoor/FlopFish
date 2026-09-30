@@ -17,11 +17,6 @@ class Player {
     virtual Result getMove(Position pos) = 0;
 };
 
-class Human : public Player {
-   public:
-    Result getMove(Position pos) override;
-};
-
 struct Config {
     int depth;
     bool reorderMoves = true;
