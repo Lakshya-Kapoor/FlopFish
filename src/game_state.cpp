@@ -49,13 +49,17 @@ bool LegalityInfo::legalityRespected(int fromSquare, int toSquare) const {
 GameState::GameState() {
     initPos();
     zobristHash = generateZobristHash();
-    positionCount[zobristHash] = 1;
+    positionHistory.reserve(256);
+    positionHistory.push_back(zobristHash);
+    repetitionStart = 0;
 }
 
 GameState::GameState(const string& fen) {
     parseFENPos(fen);
     zobristHash = generateZobristHash();
-    positionCount[zobristHash] = 1;
+    positionHistory.reserve(256);
+    positionHistory.push_back(zobristHash);
+    repetitionStart = 0;
 }
 
 Piece GameState::getPieceAt(int square) const { return board[square]; }
@@ -76,8 +80,7 @@ PositionState GameState::getPositionState() {
 }
 
 PositionState GameState::getPositionState(vector<Move>& legalMoves) {
-    if (positionCount[zobristHash] >= 3)
-        return PositionState::DRAW_BY_REPETITION;
+    if (isThreefoldRepetition()) return PositionState::DRAW_BY_REPETITION;
 
     if (halfmoveClock >= 100) return PositionState::DRAW_BY_HALFCLOCK;
 
@@ -90,6 +93,19 @@ PositionState GameState::getPositionState(vector<Move>& legalMoves) {
     }
 
     return PositionState::ONGOING;
+}
+
+bool GameState::isThreefoldRepetition() const {
+    int occurrences = 0;
+    int index = positionHistory.size() - 1;
+
+    while (index >= repetitionStart) {
+        if (positionHistory[index] == zobristHash && ++occurrences == 3)
+            return true;
+        index--;
+    }
+
+    return false;
 }
 
 U64 GameState::getZobristHash() const { return zobristHash; }

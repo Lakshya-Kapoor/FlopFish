@@ -4,17 +4,16 @@
 
 using namespace std;
 
-LegalMoveCollector::LegalMoveCollector(GameState& gameState,
-                                       const LegalityInfo& info)
+MoveCollector::MoveCollector(GameState& gameState, const LegalityInfo& info)
     : gameState(gameState), info(info) {}
 
-bool LegalMoveCollector::requiresBoardValidation(const Move& move) const {
+bool MoveCollector::requiresBoardValidation(const Move& move) const {
     return move.type == MoveType::EN_PASSANT_CAPTURE ||
            move.movedPiece == Piece::WHITE_KING ||
            move.movedPiece == Piece::BLACK_KING;
 }
 
-void LegalMoveCollector::add(const Move& move) {
+void MoveCollector::add(const Move& move) {
     if (requiresBoardValidation(move)) {
         StateInfo savedState;
         gameState.makeMove(move, savedState);
@@ -28,9 +27,9 @@ void LegalMoveCollector::add(const Move& move) {
     }
 }
 
-vector<Move> LegalMoveCollector::getMoves() const { return moves; }
+vector<Move> MoveCollector::getMoves() const { return moves; }
 
-void GameState::generateKnightMoves(int square, LegalMoveCollector& col) {
+void GameState::generateKnightMoves(int square, MoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : knightDir) {
@@ -49,7 +48,7 @@ void GameState::generateKnightMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void GameState::generateBishopMoves(int square, LegalMoveCollector& col) {
+void GameState::generateBishopMoves(int square, MoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : bishopDir) {
@@ -74,7 +73,7 @@ void GameState::generateBishopMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void GameState::generateRookMoves(int square, LegalMoveCollector& col) {
+void GameState::generateRookMoves(int square, MoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : rookDir) {
@@ -98,12 +97,12 @@ void GameState::generateRookMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void GameState::generateQueenMoves(int square, LegalMoveCollector& col) {
+void GameState::generateQueenMoves(int square, MoveCollector& col) {
     generateBishopMoves(square, col);
     generateRookMoves(square, col);
 }
 
-void GameState::generateKingMoves(int square, LegalMoveCollector& col) {
+void GameState::generateKingMoves(int square, MoveCollector& col) {
     int r = square / 8, c = square % 8;
 
     for (auto& dir : kingDir) {
@@ -124,7 +123,7 @@ void GameState::generateKingMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void GameState::generatePawnMoves(int square, LegalMoveCollector& col) {
+void GameState::generatePawnMoves(int square, MoveCollector& col) {
     int r = square / 8, c = square % 8;
     Piece piece = board[square];
 
@@ -186,7 +185,7 @@ void GameState::generatePawnMoves(int square, LegalMoveCollector& col) {
     }
 }
 
-void GameState::generateEnPassantMoves(LegalMoveCollector& col) {
+void GameState::generateEnPassantMoves(MoveCollector& col) {
     if (enPassantSquare == -1) return;
 
     int r = enPassantSquare / 8, c = enPassantSquare % 8;
@@ -215,7 +214,7 @@ void GameState::generateEnPassantMoves(LegalMoveCollector& col) {
     }
 }
 
-void GameState::generateCastlingMoves(LegalMoveCollector& col) {
+void GameState::generateCastlingMoves(MoveCollector& col) {
     if (colorToMove == Color::WHITE) {
         if (castlingRightsContains(castlingRights,
                                    CastlingRights::WHITE_KINGSIDE)) {
@@ -367,7 +366,7 @@ vector<Move> GameState::generateLegalMoves() {
     LegalityInfo info(kingSquare, numCheckers > 0, pinnedSquare,
                       evasionSquares);
 
-    LegalMoveCollector col(*this, info);
+    MoveCollector col(*this, info);
     generateCastlingMoves(col);
     generateKingMoves(kingSquare, col);
 

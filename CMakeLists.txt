@@ -35,3 +35,7 @@ enable_testing()
 add_executable(zobrist_test tests/zobrist_test.cpp)
 target_link_libraries(zobrist_test PRIVATE flopfish_engine)
 add_test(NAME zobrist_test COMMAND zobrist_test)
+
+add_executable(repetition_test tests/repetition_test.cpp)
+target_link_libraries(repetition_test PRIVATE flopfish_engine)
+add_test(NAME repetition_test COMMAND repetition_test)

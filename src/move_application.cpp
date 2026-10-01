@@ -2,6 +2,7 @@
 #include "zobrist_keys.hpp"
 
 void GameState::makeMove(const Move& move) {
+    CastlingRights previousCastlingRights = castlingRights;
     Piece movingPiece = Piece::EMPTY;
     if (move.type != MoveType::CASTLING) movingPiece = move.movedPiece;
 
@@ -10,14 +11,6 @@ void GameState::makeMove(const Move& move) {
     bool isCapture = move.type == MoveType::CAPTURE ||
                      move.type == MoveType::CAPTURE_PROMOTION ||
                      move.type == MoveType::EN_PASSANT_CAPTURE;
-
-    if (isPawnMove || isCapture) {
-        halfmoveClock = 0;
-    } else {
-        halfmoveClock++;
-    }
-
-    if (colorToMove == Color::BLACK) fullmoveNumber++;
 
     ZobristKeys* zobristKeys = ZobristKeys::getKeys();
 
@@ -232,16 +225,22 @@ void GameState::makeMove(const Move& move) {
     // adding back castling rights (they might have been updated by the move)
     zobristHash ^= zobristKeys->getCastlingRightsKey(castlingRights);
 
-    // if this was white's move we remove the color to move key, if it was
-    // black's move we add it back
+    // toggle the color to move in the hash
     zobristHash ^= zobristKeys->getColorToMoveKey();
 
     if (move.type != MoveType::DOUBLE_PUSH) enPassantSquare = -1;
 
+    if (isPawnMove || isCapture || castlingRights != previousCastlingRights) {
+        halfmoveClock = 0;
+        repetitionStart = positionHistory.size();
+    } else {
+        halfmoveClock++;
+    }
+
+    if (colorToMove == Color::BLACK) fullmoveNumber++;
     colorToMove = -colorToMove;
 
-    // update position count
-    positionCount[zobristHash]++;
+    positionHistory.push_back(zobristHash);
 }
 
 void GameState::makeMove(const Move& move, StateInfo& saveState) {
@@ -250,24 +249,20 @@ void GameState::makeMove(const Move& move, StateInfo& saveState) {
     saveState.halfmoveClock = halfmoveClock;
     saveState.fullmoveNumber = fullmoveNumber;
     saveState.zobristHash = zobristHash;
+    saveState.repetitionStart = repetitionStart;
 
     makeMove(move);
 }
 
 void GameState::undoMove(const Move& move, const StateInfo& savedState) {
-    // decrement the position count for the current position before restoring
-    // the previous state
-
-    positionCount[zobristHash]--;
-    if (positionCount[zobristHash] == 0) {
-        positionCount.erase(zobristHash);
-    }
+    positionHistory.pop_back();
 
     castlingRights = savedState.castlingRights;
     enPassantSquare = savedState.enPassantSquare;
     halfmoveClock = savedState.halfmoveClock;
     fullmoveNumber = savedState.fullmoveNumber;
     zobristHash = savedState.zobristHash;
+    repetitionStart = savedState.repetitionStart;
     colorToMove = -colorToMove;
 
     switch (move.type) {

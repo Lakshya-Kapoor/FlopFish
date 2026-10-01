@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "move.hpp"
@@ -39,9 +38,9 @@ class LegalityInfo {
 
 class GameState;
 
-class LegalMoveCollector {
+class MoveCollector {
    public:
-    LegalMoveCollector(GameState& gameState, const LegalityInfo& info);
+    MoveCollector(GameState& gameState, const LegalityInfo& info);
 
     void add(const Move& move);
     std::vector<Move> getMoves() const;
@@ -60,6 +59,7 @@ struct StateInfo {
     int halfmoveClock;
     int fullmoveNumber;
     U64 zobristHash;
+    int repetitionStart;
 };
 
 enum class PositionState : U8 {
@@ -79,21 +79,24 @@ class GameState {
     int halfmoveClock;
     int fullmoveNumber;
     U64 zobristHash;
-    std::unordered_map<U64, int> positionCount;
+    std::vector<U64> positionHistory;
+    int repetitionStart;
 
     void initPos();
     void parseFENPos(const std::string& fen);
 
-    void generateKnightMoves(int square, LegalMoveCollector& collector);
-    void generateBishopMoves(int square, LegalMoveCollector& collector);
-    void generateRookMoves(int square, LegalMoveCollector& collector);
-    void generateQueenMoves(int square, LegalMoveCollector& collector);
-    void generateKingMoves(int square, LegalMoveCollector& collector);
-    void generatePawnMoves(int square, LegalMoveCollector& collector);
-    void generateCastlingMoves(LegalMoveCollector& collector);
-    void generateEnPassantMoves(LegalMoveCollector& collector);
+    void generateKnightMoves(int square, MoveCollector& collector);
+    void generateBishopMoves(int square, MoveCollector& collector);
+    void generateRookMoves(int square, MoveCollector& collector);
+    void generateQueenMoves(int square, MoveCollector& collector);
+    void generateKingMoves(int square, MoveCollector& collector);
+    void generatePawnMoves(int square, MoveCollector& collector);
+    void generateCastlingMoves(MoveCollector& collector);
+    void generateEnPassantMoves(MoveCollector& collector);
 
     void removeCastlingRights(const Move& move);
+
+    bool isThreefoldRepetition() const;
 
     bool isInsideBoard(int r, int c) const;
 
