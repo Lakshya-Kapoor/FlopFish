@@ -102,10 +102,7 @@ int FlopFishv1::evaluatePieceSquareTables(GameState& gameState) {
 int FlopFishv1::evaluate(GameState& gameState) {
     PositionState state = gameState.getPositionState();
     if (state == PositionState::CHECKMATE) return -100000;
-    if (state == PositionState::STALEMATE ||
-        state == PositionState::DRAW_BY_REPETITION ||
-        state == PositionState::DRAW_BY_HALFCLOCK)
-        return 0;
+    if (state != PositionState::ONGOING) return 0;
 
     int score = 0;
     score += evaluateMaterial(gameState);
@@ -118,14 +115,10 @@ int FlopFishv1::negamax(GameState& gameState, int depth) {
     if (depth == 0) return evaluate(gameState);
 
     vector<Move> moves = gameState.generateLegalMoves();
-    if (moves.empty()) {
-        PositionState state = gameState.getPositionState();
-        if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE ||
-            state == PositionState::DRAW_BY_REPETITION ||
-            state == PositionState::DRAW_BY_HALFCLOCK)
-            return 0;
-    }
+
+    PositionState state = gameState.getPositionState(moves);
+    if (state == PositionState::CHECKMATE) return -100000;
+    if (state != PositionState::ONGOING) return 0;
 
     int maxScore = -INF;
 
@@ -149,14 +142,9 @@ int FlopFishv1::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     vector<Move> moves = gameState.generateLegalMoves();
     if (config.reorderMoves) moveOrdering(moves, gameState);
 
-    if (moves.empty()) {
-        PositionState state = gameState.getPositionState();
-        if (state == PositionState::CHECKMATE) return -100000;
-        if (state == PositionState::STALEMATE ||
-            state == PositionState::DRAW_BY_REPETITION ||
-            state == PositionState::DRAW_BY_HALFCLOCK)
-            return 0;
-    }
+    PositionState state = gameState.getPositionState();
+    if (state == PositionState::CHECKMATE) return -100000;
+    if (state != PositionState::ONGOING) return 0;
 
     int maxScore = -INF;
 

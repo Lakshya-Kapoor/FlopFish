@@ -5,9 +5,8 @@
 using namespace std;
 
 LegalMoveCollector::LegalMoveCollector(GameState& gameState,
-                                       const LegalityInfo& info,
-                                       vector<Move>& moves)
-    : gameState(gameState), info(info), moves(moves) {}
+                                       const LegalityInfo& info)
+    : gameState(gameState), info(info) {}
 
 bool LegalMoveCollector::requiresBoardValidation(const Move& move) const {
     return move.type == MoveType::EN_PASSANT_CAPTURE ||
@@ -28,6 +27,8 @@ void LegalMoveCollector::add(const Move& move) {
             moves.push_back(move);
     }
 }
+
+vector<Move> LegalMoveCollector::getMoves() const { return moves; }
 
 void GameState::generateKnightMoves(int square, LegalMoveCollector& col) {
     int r = square / 8, c = square % 8;
@@ -365,12 +366,12 @@ vector<Move> GameState::generateLegalMoves() {
 
     LegalityInfo info(kingSquare, numCheckers > 0, pinnedSquare,
                       evasionSquares);
-    vector<Move> moves;
-    LegalMoveCollector col(*this, info, moves);
+
+    LegalMoveCollector col(*this, info);
     generateCastlingMoves(col);
     generateKingMoves(kingSquare, col);
 
-    if (numCheckers >= 2) return moves;
+    if (numCheckers >= 2) return col.getMoves();
 
     generateEnPassantMoves(col);
 
@@ -406,5 +407,5 @@ vector<Move> GameState::generateLegalMoves() {
         }
     }
 
-    return moves;
+    return col.getMoves();
 }

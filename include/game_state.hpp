@@ -41,17 +41,17 @@ class GameState;
 
 class LegalMoveCollector {
    public:
-    LegalMoveCollector(GameState& gameState, const LegalityInfo& info,
-                       std::vector<Move>& moves);
+    LegalMoveCollector(GameState& gameState, const LegalityInfo& info);
 
     void add(const Move& move);
+    std::vector<Move> getMoves() const;
 
    private:
     bool requiresBoardValidation(const Move& move) const;
 
     GameState& gameState;
     const LegalityInfo& info;
-    std::vector<Move>& moves;
+    std::vector<Move> moves;
 };
 
 struct StateInfo {

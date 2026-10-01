@@ -18,26 +18,23 @@ int FlopFishv4::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
 
     PositionState state = gameState.getPositionState(moves);
     if (state == PositionState::CHECKMATE) return -100000;
-    if (state == PositionState::STALEMATE ||
-        state == PositionState::DRAW_BY_HALFCLOCK ||
-        state == PositionState::DRAW_BY_REPETITION)
-        return 0;
+    if (state != PositionState::ONGOING) return 0;
 
-    TTEntry* entry = tt.probe(gameState.getZobristHash());
+    TTEntry entry = tt.probe(gameState.getZobristHash());
     Move ttMove;
 
-    if (entry != nullptr) {
-        ttMove = entry->getBestMove();
-        if (entry->getDepth() >= depth) {
-            int score = entry->getScore();
-            if (entry->getBound() == Bound::EXACT) {
-                return entry->getScore();
-            } else if (entry->getBound() == Bound::LOWER &&
-                       entry->getScore() >= beta) {
-                return entry->getScore();
-            } else if (entry->getBound() == Bound::UPPER &&
-                       entry->getScore() <= alpha) {
-                return entry->getScore();
+    if (entry.isValid()) {
+        ttMove = entry.getBestMove();
+        if (entry.getDepth() >= depth) {
+            int score = entry.getScore();
+            if (entry.getBound() == Bound::EXACT) {
+                return entry.getScore();
+            } else if (entry.getBound() == Bound::LOWER &&
+                       entry.getScore() >= beta) {
+                return entry.getScore();
+            } else if (entry.getBound() == Bound::UPPER &&
+                       entry.getScore() <= alpha) {
+                return entry.getScore();
             }
         }
     }
@@ -46,7 +43,7 @@ int FlopFishv4::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     int bestScore = -INF;
     Move bestMove;
 
-    if (config.reorderTTMove && entry != nullptr) {
+    if (config.reorderTTMove && entry.isValid()) {
         int idx = 0;
         while (idx < moves.size() && moves[idx] != ttMove) idx++;
         if (idx < moves.size()) {
@@ -98,6 +95,19 @@ Result FlopFishv4::getMove(GameState gameState) {
         vector<Move> moves = gameState.generateLegalMoves();
         if (config.reorderMoves) moveOrdering(moves, gameState);
 
+        TTEntry entry = tt.probe(gameState.getZobristHash());
+        if (entry.isValid()) {
+            Move ttMove = entry.getBestMove();
+            int idx = 0;
+            while (idx < moves.size() && moves[idx] != ttMove) idx++;
+            if (idx < moves.size()) {
+                while (idx > 0) {
+                    swap(moves[idx], moves[idx - 1]);
+                    idx--;
+                }
+            }
+        }
+
         for (const Move& move : moves) {
             StateInfo savedState;
             gameState.makeMove(move, savedState);
@@ -112,6 +122,9 @@ Result FlopFishv4::getMove(GameState gameState) {
 
             alpha = max(alpha, score);
         }
+
+        tt.store(gameState.getZobristHash(), depth, bestScore, Bound::EXACT,
+                 bestMove);
     }
 
     result.move = bestMove;

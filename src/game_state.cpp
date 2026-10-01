@@ -49,11 +49,13 @@ bool LegalityInfo::legalityRespected(int fromSquare, int toSquare) const {
 GameState::GameState() {
     initPos();
     zobristHash = generateZobristHash();
+    positionCount[zobristHash] = 1;
 }
 
 GameState::GameState(const string& fen) {
     parseFENPos(fen);
     zobristHash = generateZobristHash();
+    positionCount[zobristHash] = 1;
 }
 
 Piece GameState::getPieceAt(int square) const { return board[square]; }
@@ -69,22 +71,8 @@ int GameState::getHalfmoveClock() const { return halfmoveClock; }
 int GameState::getFullmoveNumber() const { return fullmoveNumber; }
 
 PositionState GameState::getPositionState() {
-    if (positionCount[zobristHash] >= 3)
-        return PositionState::DRAW_BY_REPETITION;
-
-    if (halfmoveClock >= 100) return PositionState::DRAW_BY_HALFCLOCK;
-
     vector<Move> legalMoves = generateLegalMoves();
-
-    if (legalMoves.empty()) {
-        if (inCheck(colorToMove)) {
-            return PositionState::CHECKMATE;
-        } else {
-            return PositionState::STALEMATE;
-        }
-    }
-
-    return PositionState::ONGOING;
+    return getPositionState(legalMoves);
 }
 
 PositionState GameState::getPositionState(vector<Move>& legalMoves) {

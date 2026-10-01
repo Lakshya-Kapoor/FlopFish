@@ -24,8 +24,7 @@ void Game::play() {
         gameState.print();
         cout << cnt++ << endl;
 
-        vector<Move> legalMoves = gameState.generateLegalMoves();
-        PositionState state = gameState.getPositionState(legalMoves);
+        PositionState state = gameState.getPositionState();
         if (state == PositionState::CHECKMATE) {
             cout << (gameState.getColorToMove() == Color::WHITE ? "Black"
                                                                 : "White")
@@ -49,44 +48,44 @@ void Game::play() {
 }
 
 int main() {
-    // GameState gameState(
-    //     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    GameState gameState(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    // Config config;
-    // cout << "Enter search depth: ";
-    // cin >> config.depth;
-
-    // Player* p;
-    // int version;
-    // cout << "Enter FlopFish version (1 or 2 or 3 or 4): ";
-    // cin >> version;
-    // if (version == 1) {
-    //     p = new FlopFishv1(config);
-    // } else if (version == 2) {
-    //     p = new FlopFishv2(config);
-    // } else if (version == 3) {
-    //     p = new FlopFishv3(config);
-    // } else if (version == 4) {
-    //     p = new FlopFishv4(config);
-    // } else {
-    //     cout << "Invalid version!" << endl;
-    //     return 1;
-    // }
-
-    // Result res = p->getMove(gameState);
-
-    // cout << "Best move: " << res.move.toString() << endl;
-    // cout << "Nodes visited: " << res.nodesVisited << endl;
-    // cout << "Time taken: " << res.timeTaken << " seconds" << endl;
-    // cout << "Nodes per second: " << res.nodesVisited / res.timeTaken << endl;
     Config config;
-    config.depth = 4;
+    cout << "Enter search depth: ";
+    cin >> config.depth;
 
-    Player* p1 = new FlopFishv4(config);
+    Player* p;
+    int version;
+    cout << "Enter FlopFish version (1 or 2 or 3 or 4): ";
+    cin >> version;
+    if (version == 1) {
+        p = new FlopFishv1(config);
+    } else if (version == 2) {
+        p = new FlopFishv2(config);
+    } else if (version == 3) {
+        p = new FlopFishv3(config);
+    } else if (version == 4) {
+        p = new FlopFishv4(config);
+    } else {
+        cout << "Invalid version!" << endl;
+        return 1;
+    }
 
-    config.depth = 4;
-    Player* p2 = new FlopFishv4(config);
+    Result res = p->getMove(gameState);
 
-    Game game(p1, p2);
-    game.play();
+    cout << "Best move: " << res.move.toString() << endl;
+    cout << "Nodes visited: " << res.nodesVisited << endl;
+    cout << "Time taken: " << res.timeTaken << " seconds" << endl;
+    cout << "Nodes per second: " << res.nodesVisited / res.timeTaken << endl;
+    // Config config;
+    // config.depth = 8;
+
+    // Player* p1 = new FlopFishv4(config);
+
+    // config.depth = 8;
+    // Player* p2 = new FlopFishv4(config);
+
+    // Game game(p1, p2);
+    // game.play();
 }

@@ -14,8 +14,10 @@ class TTEntry {
     int score;
     Bound bound;
     Move bestMove;
+    bool valid;
 
    public:
+    TTEntry();
     TTEntry(U64 hash, int depth, int score, Bound bound, Move bestMove);
 
     U64 getZobristHash() const;
@@ -23,16 +25,17 @@ class TTEntry {
     int getScore() const;
     Bound getBound() const;
     Move getBestMove() const;
+    bool isValid() const;
 };
 
 class TranspositionTable {
    private:
-    std::vector<TTEntry*> table;
+    std::vector<TTEntry> table;
 
    public:
     // size represents the number of entries in the transposition table, it'll
     // be rounded up to the nearest power of 2
     TranspositionTable(size_t size);
     void store(U64 hash, int depth, int score, Bound bound, Move bestMove);
-    TTEntry* probe(U64 hash);
+    TTEntry probe(U64 hash) const;
 };
