@@ -78,14 +78,16 @@ int main() {
     // cout << "Time taken: " << res.timeTaken << " seconds" << endl;
     // cout << "Nodes per second: " << res.nodesVisited / res.timeTaken << endl;
     Config config;
-    config.depth = 6;
+    config.TTSize = 1 << 20;
 
+    config.depth = 4;
     Player* p1 = new FlopFishv4(config);
 
-    config.depth = 6;
+    config.depth = 7;
     Player* p2 = new FlopFishv4(config);
 
-    Game game(p1, p2);
+    Game game(p1, p2,
+              "r2q1rk1/ppb2pp1/2n3p1/3p4/3P4/P3B2P/1P1QNPP1/R3R1K1 w - - 0 17");
     game.play();
 
     delete p1;
