@@ -80,3 +80,14 @@ class FlopFishv4 : public FlopFishv1 {
 
     Result getMove(GameState gameState) override;
 };
+
+class FlopFishv5 : public FlopFishv4 {
+   protected:
+    int quiescenceSearch(GameState& gameState, int alpha, int beta);
+
+    int negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
+                         int beta) override;
+
+   public:
+    FlopFishv5(Config config);
+};

@@ -20,6 +20,7 @@ add_library(flopfish_engine
     src/flopfish_v2.cpp
     src/flopfish_v3.cpp
     src/flopfish_v4.cpp
+    src/flopfish_v5.cpp
 )
 
 target_include_directories(flopfish_engine PUBLIC include)

@@ -14,7 +14,7 @@ int FlopFishv3::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     if (config.reorderMoves) moveOrdering(moves, gameState);
 
     PositionState state = gameState.getPositionState(moves);
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) return MATE_SCORE;
     if (state != PositionState::ONGOING) return 0;
 
     if (usePV && depth > 1) {

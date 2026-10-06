@@ -1,6 +1,7 @@
 #pragma once
 
 #define INF 1e9
+#define MATE_SCORE -100000
 
 #include <cstdint>
 

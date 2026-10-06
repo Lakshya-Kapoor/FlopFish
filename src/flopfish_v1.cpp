@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include "player.hpp"
+#include "utils.hpp"
 
 using namespace std;
 
@@ -101,7 +102,7 @@ int FlopFishv1::evaluatePieceSquareTables(GameState& gameState) {
 // returns evaluation relative to the side to move.
 int FlopFishv1::evaluate(GameState& gameState) {
     PositionState state = gameState.getPositionState();
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) return MATE_SCORE;
     if (state != PositionState::ONGOING) return 0;
 
     int score = 0;
@@ -117,7 +118,7 @@ int FlopFishv1::negamax(GameState& gameState, int depth) {
     vector<Move> moves = gameState.generateLegalMoves();
 
     PositionState state = gameState.getPositionState(moves);
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) return MATE_SCORE;
     if (state != PositionState::ONGOING) return 0;
 
     int maxScore = -INF;
@@ -143,7 +144,7 @@ int FlopFishv1::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     if (config.reorderMoves) moveOrdering(moves, gameState);
 
     PositionState state = gameState.getPositionState();
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) return MATE_SCORE;
     if (state != PositionState::ONGOING) return 0;
 
     int maxScore = -INF;

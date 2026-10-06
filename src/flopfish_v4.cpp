@@ -17,14 +17,12 @@ int FlopFishv4::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     if (config.reorderMoves) moveOrdering(moves, gameState);
 
     PositionState state = gameState.getPositionState(moves);
-    if (state == PositionState::CHECKMATE) return -100000;
+    if (state == PositionState::CHECKMATE) return MATE_SCORE;
     if (state != PositionState::ONGOING) return 0;
 
     TTEntry entry = tt.probe(gameState.getZobristHash());
-    Move ttMove;
 
     if (entry.isValid()) {
-        ttMove = entry.getBestMove();
         if (entry.getDepth() >= depth) {
             int score = entry.getScore();
             if (entry.getBound() == Bound::EXACT) {
@@ -44,6 +42,7 @@ int FlopFishv4::negamaxAlphaBeta(GameState& gameState, int depth, int alpha,
     Move bestMove;
 
     if (config.reorderTTMove && entry.isValid()) {
+        Move ttMove = entry.getBestMove();
         int idx = 0;
         while (idx < moves.size() && moves[idx] != ttMove) idx++;
         if (idx < moves.size()) {
